@@ -140,7 +140,6 @@
     <div id="yt-player-hidden"></div>
 
 <script>
-    // 1. YouTube Engine Initialization
     var tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
@@ -151,7 +150,7 @@
 
     function onYouTubeIframeAPIReady() {
         player = new YT.Player('yt-player-hidden', {
-            height: '10', width: '10', videoId: '',
+            height: '200', width: '200', videoId: '',
             playerVars: { 'autoplay': 1, 'controls': 0 },
             events: {
                 'onStateChange': onPlayerStateChange
@@ -160,68 +159,68 @@
     }
 
     function onPlayerStateChange(event) {
-    const artistLabel = document.getElementById('track-artist');
-    
-    if (event.data == YT.PlayerState.BUFFERING) {
-        artistLabel.innerText = "Buffering stream...";
-    } else if (event.data == YT.PlayerState.PLAYING) {
-        isPlaying = true;
-        document.getElementById('btn-play').innerText = "⏸";
-        progressTimer = setInterval(updateProgress, 500);
-        syncTrackDetails();
-    } else if (event.data == YT.PlayerState.UNSTARTED) {
-        artistLabel.innerText = "Connecting to YouTube...";
-    }
-}
-
-    // 2. Search & Import Handler
-async function executeSearch() {
-    const query = document.getElementById('search-input').value.trim();
-    if (!query) return;
-
-    const btn = document.getElementById('search-btn');
-    btn.innerText = "FETCHING...";
-
-    try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-
-        if (data.type === 'spotify_playlist') {
-            document.getElementById('track-artist').innerText = `Imported ${data.count} Tracks — Tap a track to play`;
-            currentQueue = data.tracks;
-            renderQueue(true);
-        } else if (data.results && data.results.length > 0) {
-            currentQueue = data.results;
-            renderQueue(false);
-            // Display top result info
-            document.getElementById('track-title').innerText = currentQueue[0].title;
-            document.getElementById('track-artist').innerText = "Tap track below to start playback";
-            document.getElementById('track-art').src = currentQueue[0].thumbnail;
+        const artistLabel = document.getElementById('track-artist');
+        
+        if (event.data == YT.PlayerState.BUFFERING) {
+            artistLabel.innerText = "Buffering stream...";
+        } else if (event.data == YT.PlayerState.PLAYING) {
+            isPlaying = true;
+            document.getElementById('btn-play').innerText = "⏸";
+            progressTimer = setInterval(updateProgress, 500);
+            syncTrackDetails();
+        } else if (event.data == YT.PlayerState.UNSTARTED) {
+            artistLabel.innerText = "Connecting to YouTube...";
+        } else if (event.data == YT.PlayerState.ENDED) {
+            playNext();
         }
-    } catch (e) {
-        alert("Search failed. Check API endpoint connection.");
-    } finally {
-        btn.innerText = "SEARCH";
     }
-}
 
-// 2. Updated Direct-Gesture Play Function
-function playYouTubeItem(index) {
-    if (index < 0 || index >= currentQueue.length) return;
-    currentQueueIndex = index;
-    const item = currentQueue[index];
-    
-    document.getElementById('track-title').innerText = item.title;
-    document.getElementById('track-artist').innerText = item.artist;
-    document.getElementById('track-art').src = item.thumbnail;
-    
-    if (player && typeof player.loadVideoById === 'function') {
-        player.loadVideoById(item.id);
-        player.playVideo(); // Force play on user tap
+    async function executeSearch() {
+        const query = document.getElementById('search-input').value.trim();
+        if (!query) return;
+
+        const btn = document.getElementById('search-btn');
+        btn.innerText = "FETCHING...";
+
+        try {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+
+            if (data.type === 'spotify_playlist') {
+                document.getElementById('track-artist').innerText = `Imported ${data.count} Tracks — Tap a track to play`;
+                currentQueue = data.tracks;
+                renderQueue(true);
+            } else if (data.results && data.results.length > 0) {
+                currentQueue = data.results;
+                renderQueue(false);
+                document.getElementById('track-title').innerText = currentQueue[0].title;
+                document.getElementById('track-artist').innerText = "Tap track below to start playback";
+                document.getElementById('track-art').src = currentQueue[0].thumbnail;
+            } else {
+                alert("No video results found. Try different keywords!");
+            }
+        } catch (e) {
+            alert("Search failed. Check API endpoint connection.");
+        } finally {
+            btn.innerText = "SEARCH";
+        }
     }
-}
 
-    // Resolve Spotify track query to YouTube Video ID dynamically
+    function playYouTubeItem(index) {
+        if (index < 0 || index >= currentQueue.length) return;
+        currentQueueIndex = index;
+        const item = currentQueue[index];
+        
+        document.getElementById('track-title').innerText = item.title;
+        document.getElementById('track-artist').innerText = item.artist;
+        document.getElementById('track-art').src = item.thumbnail;
+        
+        if (player && typeof player.loadVideoById === 'function') {
+            player.loadVideoById(item.id);
+            player.playVideo();
+        }
+    }
+
     async function resolveAndPlaySpotifyTrack(index) {
         if (index < 0 || index >= currentQueue.length) return;
         currentQueueIndex = index;
@@ -237,11 +236,12 @@ function playYouTubeItem(index) {
                 const matched = data.results[0];
                 item.id = matched.id;
                 item.thumbnail = matched.thumbnail;
-                player.loadVideoById(matched.id);
+                playYouTubeItem(index);
+            } else {
+                alert("Could not match this track on YouTube.");
             }
         } catch(e) { console.error(e); }
     }
-
 
     function togglePlay() {
         if (!player) return;
@@ -267,7 +267,7 @@ function playYouTubeItem(index) {
     function syncTrackDetails() {
         if (!player || !player.getVideoData) return;
         const data = player.getVideoData();
-        if (data && data.title && !currentQueue[currentQueueIndex]?.artist.includes("Spotify")) {
+        if (data && data.title && !currentQueue[currentQueueIndex]?.artist?.includes("Spotify")) {
             document.getElementById('track-title').innerText = data.title;
             document.getElementById('track-artist').innerText = data.author;
             document.getElementById('track-art').src = `https://img.youtube.com/vi/${data.video_id}/hqdefault.jpg`;
