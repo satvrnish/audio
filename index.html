@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sound</title>
+    <style>
+        @font-face { font-family: 'TanPearl'; src: url('./TanPearl.otf'); }
+
+        :root {
+            --bg-paper: #F9F9F7;    
+            --ink-black: #1A1A1A;   
+            --ink-faded: #888888;
+            --border: rgba(0,0,0,0.1);
+            --item-active: rgba(0,0,0,0.04);
+            --font-serif: 'TanPearl', serif; 
+            --font-mono: 'Segoe UI', monospace;
+            --safe-top: env(safe-area-inset-top, 0px);
+        }
+
+        body.dark-mode { 
+            --bg-paper: #111111; --ink-black: #E0E0E0; --ink-faded: #777777;
+            --item-active: rgba(255,255,255,0.05); --border: rgba(255,255,255,0.1); 
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0; background-color: var(--bg-paper); color: var(--ink-black);
+            font-family: var(--font-mono); height: 100dvh; display: flex;
+            flex-direction: column; overflow: hidden; transition: 0.4s;
+        }
+
+        header {
+            padding: 20px; padding-top: calc(20px + var(--safe-top));
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border); flex-shrink: 0;
+        }
+        .header-title { font-family: var(--font-serif); font-size: 24px; }
+        .icon-btn { background: none; border: none; padding: 0; cursor: pointer; color: var(--ink-black); }
+
+        .player-stage {
+            flex-grow: 1; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; padding: 20px; overflow-y: auto;
+        }
+
+        .art-frame {
+            width: 200px; height: 200px; border: 1px solid var(--ink-black);
+            background: var(--item-active); border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden;
+        }
+        .art-frame img { width: 100%; height: 100%; object-fit: cover; }
+
+        .track-title { font-family: var(--font-serif); font-size: 20px; margin-bottom: 4px; text-align: center; max-width: 280px; }
+        .track-artist { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.6; margin-bottom: 15px; }
+
+        /* UNIFIED SEARCH INPUT BAR */
+        .search-wrapper { width: 100%; max-width: 320px; margin-bottom: 15px; }
+        .input-row { display: flex; gap: 8px; }
+        .native-input {
+            flex-grow: 1; padding: 10px 12px; background: var(--item-active); border: 1px solid var(--border);
+            color: var(--ink-black); border-radius: 4px; font-family: var(--font-mono); font-size: 11px; outline: none;
+        }
+        .btn-panel {
+            background: var(--ink-black); color: var(--bg-paper); border: none;
+            padding: 10px 14px; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+            letter-spacing: 1px; cursor: pointer; border-radius: 4px; font-weight: bold;
+        }
+
+        /* SCRUBBER & CONTROLS */
+        .scrubber-container { width: 100%; max-width: 320px; margin-bottom: 15px; }
+        .time-readout { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.5; margin-top: 6px; }
+        .progress-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; cursor: pointer; position: relative; }
+        .progress-fill { height: 100%; background: var(--ink-black); width: 0%; border-radius: 2px; }
+
+        .controls-row { display: flex; align-items: center; gap: 25px; margin-bottom: 15px; }
+        .control-btn { background: none; border: none; color: var(--ink-black); cursor: pointer; font-size: 18px; }
+        .play-btn { 
+            width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--ink-black);
+            display: flex; align-items: center; justify-content: center; background: var(--bg-paper); font-size: 14px;
+        }
+
+        /* RESULTS / QUEUE LEDGER */
+        .queue-ledger { width: 100%; max-width: 360px; max-height: 180px; overflow-y: auto; border-top: 1px dashed var(--border); }
+        .queue-item {
+            padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex;
+            justify-content: space-between; align-items: center; cursor: pointer; font-size: 11px;
+        }
+        .queue-item:active { background: var(--item-active); }
+        .queue-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+        .queue-sub { opacity: 0.5; font-size: 9px; text-transform: uppercase; }
+
+        #yt-player-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">Sound</div>
+        <button class="icon-btn" onclick="document.body.classList.toggle('dark-mode')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+    </header>
+
+    <div class="player-stage">
+        <div class="art-frame">
+            <img id="track-art" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='1'><circle cx='12' cy='12' r='10'/><circle cx='12' cy='12' r='3'/></svg>">
+        </div>
+        
+        <div class="track-title" id="track-title">Sound Engine</div>
+        <div class="track-artist" id="track-artist">Search or Paste Spotify Link</div>
+
+        <div class="search-wrapper">
+            <div class="input-row">
+                <input type="text" id="search-input" class="native-input" placeholder="Song, YT link, or Spotify Playlist...">
+                <button class="btn-panel" id="search-btn" onclick="executeSearch()">SEARCH</button>
+            </div>
+        </div>
+
+        <div class="scrubber-container">
+            <div class="progress-track" onclick="seekTrack(event)">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+            <div class="time-readout">
+                <span id="time-current">0:00</span>
+                <span id="time-total">0:00</span>
+            </div>
+        </div>
+
+        <div class="controls-row">
+            <button class="control-btn" onclick="playPrev()">⏮</button>
+            <button class="control-btn play-btn" onclick="togglePlay()" id="btn-play">▶</button>
+            <button class="control-btn" onclick="playNext()">⏭</button>
+        </div>
+
+        <div class="queue-ledger" id="queue-container"></div>
+    </div>
+
+    <div id="yt-player-hidden"></div>
+
+<script>
+    // 1. YouTube Engine Initialization
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+
+    let player, isPlaying = false, progressTimer;
+    let currentQueue = [];
+    let currentQueueIndex = 0;
+
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('yt-player-hidden', {
+            height: '10', width: '10', videoId: '',
+            playerVars: { 'autoplay': 1, 'controls': 0 },
+            events: {
+                'onStateChange': onPlayerStateChange
+            }
+        });
+    }
+
+    function onPlayerStateChange(event) {
+        if (event.data == YT.PlayerState.PLAYING) {
+            isPlaying = true;
+            document.getElementById('btn-play').innerText = "⏸";
+            progressTimer = setInterval(updateProgress, 500);
+            syncTrackDetails();
+        } else {
+            isPlaying = false;
+            document.getElementById('btn-play').innerText = "▶";
+            clearInterval(progressTimer);
+        }
+        if (event.data == YT.PlayerState.ENDED) {
+            playNext();
+        }
+    }
+
+    // 2. Search & Import Handler
+    async function executeSearch() {
+        const query = document.getElementById('search-input').value.trim();
+        if (!query) return;
+
+        const btn = document.getElementById('search-btn');
+        btn.innerText = "FETCHING...";
+
+        try {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+
+            if (data.type === 'spotify_playlist') {
+                document.getElementById('track-artist').innerText = `Imported ${data.count} Spotify Tracks`;
+                currentQueue = data.tracks;
+                renderQueue(true);
+                // Auto-resolve first track
+                resolveAndPlaySpotifyTrack(0);
+            } else if (data.results && data.results.length > 0) {
+                currentQueue = data.results;
+                renderQueue(false);
+                playYouTubeItem(0);
+            }
+        } catch (e) {
+            alert("Search failed. Check endpoint connection.");
+        } finally {
+            btn.innerText = "SEARCH";
+        }
+    }
+
+    // Resolve Spotify track query to YouTube Video ID dynamically
+    async function resolveAndPlaySpotifyTrack(index) {
+        if (index < 0 || index >= currentQueue.length) return;
+        currentQueueIndex = index;
+        const item = currentQueue[index];
+        
+        document.getElementById('track-title').innerText = item.title;
+        document.getElementById('track-artist').innerText = item.artist + " (Matching YT...)";
+
+        try {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(item.searchQuery)}`);
+            const data = await res.json();
+            if (data.results && data.results.length > 0) {
+                const matched = data.results[0];
+                item.id = matched.id;
+                item.thumbnail = matched.thumbnail;
+                player.loadVideoById(matched.id);
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    function playYouTubeItem(index) {
+        if (index < 0 || index >= currentQueue.length) return;
+        currentQueueIndex = index;
+        const item = currentQueue[index];
+        
+        document.getElementById('track-title').innerText = item.title;
+        document.getElementById('track-artist').innerText = item.artist;
+        document.getElementById('track-art').src = item.thumbnail;
+        
+        player.loadVideoById(item.id);
+    }
+
+    function togglePlay() {
+        if (!player) return;
+        if (isPlaying) player.pauseVideo(); else player.playVideo();
+    }
+
+    function playNext() {
+        if (currentQueueIndex + 1 < currentQueue.length) {
+            const nextIdx = currentQueueIndex + 1;
+            if (currentQueue[nextIdx].id) playYouTubeItem(nextIdx);
+            else resolveAndPlaySpotifyTrack(nextIdx);
+        }
+    }
+
+    function playPrev() {
+        if (currentQueueIndex > 0) {
+            const prevIdx = currentQueueIndex - 1;
+            if (currentQueue[prevIdx].id) playYouTubeItem(prevIdx);
+            else resolveAndPlaySpotifyTrack(prevIdx);
+        }
+    }
+
+    function syncTrackDetails() {
+        if (!player || !player.getVideoData) return;
+        const data = player.getVideoData();
+        if (data && data.title && !currentQueue[currentQueueIndex]?.artist.includes("Spotify")) {
+            document.getElementById('track-title').innerText = data.title;
+            document.getElementById('track-artist').innerText = data.author;
+            document.getElementById('track-art').src = `https://img.youtube.com/vi/${data.video_id}/hqdefault.jpg`;
+        }
+    }
+
+    function updateProgress() {
+        if (!player || !player.getCurrentTime) return;
+        const cur = player.getCurrentTime();
+        const tot = player.getDuration();
+        if (tot > 0) {
+            document.getElementById('progress-bar').style.width = `${(cur / tot) * 100}%`;
+            document.getElementById('time-current').innerText = formatTime(cur);
+            document.getElementById('time-total').innerText = formatTime(tot);
+        }
+    }
+
+    function seekTrack(event) {
+        if (!player || !player.getDuration) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        const pct = (event.clientX - rect.left) / rect.width;
+        player.seekTo(player.getDuration() * pct, true);
+    }
+
+    function formatTime(secs) {
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function renderQueue(isSpotify = false) {
+        const container = document.getElementById('queue-container');
+        container.innerHTML = '';
+        currentQueue.forEach((item, i) => {
+            const div = document.createElement('div');
+            div.className = 'queue-item';
+            div.onclick = () => isSpotify ? resolveAndPlaySpotifyTrack(i) : playYouTubeItem(i);
+            div.innerHTML = `
+                <div>
+                    <div class="queue-title">${item.title}</div>
+                    <div class="queue-sub">${item.artist}</div>
+                </div>
+                <div style="font-size: 10px; opacity: 0.4;">${isSpotify ? 'SPOTIFY' : (item.duration || 'YT')}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+</script>
+</body>
+</html>
