@@ -72,31 +72,55 @@ async function parseSpotifyLink(url) {
 
 // --- HELPER 2: Scrape YouTube Top Search Results Without Quota Limits ---
 async function searchYouTube(query) {
-    const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-    const response = await fetch(searchUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-    });
-    const html = await response.text();
+async function searchYouTube(query) {
+    try {
+        const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+        const response = await fetch(searchUrl, {
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9'
+            }
+        });
+        const html = await response.text();
 
-    const match = html.match(/var ytInitialData = (\{.*?\});<\/script>/);
-    if (!match) return [];
+        // 1. Precise String Extraction (avoiding fragile Regex cutoffs)
+        const startIndex = html.indexOf('var ytInitialData = ');
+        if (startIndex === -1) return [];
+        
+        const jsonStart = startIndex + 'var ytInitialData = '.length;
+        const jsonEnd = html.indexOf(';</script>', jsonStart);
+        if (jsonEnd === -1) return [];
 
-    const ytData = JSON.parse(match[1]);
-    const contents = ytData.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents[0]?.itemSectionRenderer?.contents || [];
+        const jsonString = html.substring(jsonStart, jsonEnd);
+        const ytData = JSON.parse(jsonString);
 
-    const results = [];
-    for (const item of contents) {
-        const video = item.videoRenderer;
-        if (video && video.videoId) {
-            results.push({
-                id: video.videoId,
-                title: video.title?.runs[0]?.text || "Unknown Track",
-                artist: video.ownerText?.runs[0]?.text || "YouTube",
-                duration: video.lengthText?.simpleText || "0:00",
-                thumbnail: video.thumbnail?.thumbnails[0]?.url || `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`
-            });
-            if (results.length >= 6) break; // Limit to top 6 crisp results
+        const sectionList = ytData.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
+        const results = [];
+
+        // 2. Loop across ALL sections (ignores Top Shelves, Shorts, & Banners)
+        for (const section of sectionList) {
+            const itemSection = section.itemSectionRenderer;
+            if (!itemSection || !itemSection.contents) continue;
+
+            for (const item of itemSection.contents) {
+                const video = item.videoRenderer;
+                if (video && video.videoId) {
+                    results.push({
+                        id: video.videoId,
+                        title: video.title?.runs[0]?.text || "Unknown Track",
+                        artist: video.ownerText?.runs[0]?.text || "YouTube",
+                        duration: video.lengthText?.simpleText || "0:00",
+                        thumbnail: video.thumbnail?.thumbnails[0]?.url || `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`
+                    });
+                    if (results.length >= 8) break;
+                }
+            }
+            if (results.length >= 8) break;
         }
+
+        return results;
+    } catch (err) {
+        console.error("Scraper Error:", err);
+        return [];
     }
-    return results;
 }
