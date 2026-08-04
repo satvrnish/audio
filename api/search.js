@@ -55,7 +55,6 @@ async function parseSpotifyLink(url) {
     });
     const html = await response.text();
 
-    // Parse Spotify's __NEXT_DATA__ JSON payload inside the embed HTML
     const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/);
     if (!match) throw new Error("Could not read Spotify playlist structure.");
 
@@ -72,7 +71,6 @@ async function parseSpotifyLink(url) {
 
 // --- HELPER 2: Scrape YouTube Top Search Results Without Quota Limits ---
 async function searchYouTube(query) {
-async function searchYouTube(query) {
     try {
         const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
         const response = await fetch(searchUrl, {
@@ -83,7 +81,6 @@ async function searchYouTube(query) {
         });
         const html = await response.text();
 
-        // 1. Precise String Extraction (avoiding fragile Regex cutoffs)
         const startIndex = html.indexOf('var ytInitialData = ');
         if (startIndex === -1) return [];
         
@@ -97,7 +94,6 @@ async function searchYouTube(query) {
         const sectionList = ytData.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
         const results = [];
 
-        // 2. Loop across ALL sections (ignores Top Shelves, Shorts, & Banners)
         for (const section of sectionList) {
             const itemSection = section.itemSectionRenderer;
             if (!itemSection || !itemSection.contents) continue;
