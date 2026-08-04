@@ -160,20 +160,19 @@
     }
 
     function onPlayerStateChange(event) {
-        if (event.data == YT.PlayerState.PLAYING) {
-            isPlaying = true;
-            document.getElementById('btn-play').innerText = "⏸";
-            progressTimer = setInterval(updateProgress, 500);
-            syncTrackDetails();
-        } else {
-            isPlaying = false;
-            document.getElementById('btn-play').innerText = "▶";
-            clearInterval(progressTimer);
-        }
-        if (event.data == YT.PlayerState.ENDED) {
-            playNext();
-        }
+    const artistLabel = document.getElementById('track-artist');
+    
+    if (event.data == YT.PlayerState.BUFFERING) {
+        artistLabel.innerText = "Buffering stream...";
+    } else if (event.data == YT.PlayerState.PLAYING) {
+        isPlaying = true;
+        document.getElementById('btn-play').innerText = "⏸";
+        progressTimer = setInterval(updateProgress, 500);
+        syncTrackDetails();
+    } else if (event.data == YT.PlayerState.UNSTARTED) {
+        artistLabel.innerText = "Connecting to YouTube...";
     }
+}
 
     // 2. Search & Import Handler
 async function executeSearch() {
