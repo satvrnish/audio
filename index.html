@@ -176,34 +176,51 @@
     }
 
     // 2. Search & Import Handler
-    async function executeSearch() {
-        const query = document.getElementById('search-input').value.trim();
-        if (!query) return;
+async function executeSearch() {
+    const query = document.getElementById('search-input').value.trim();
+    if (!query) return;
 
-        const btn = document.getElementById('search-btn');
-        btn.innerText = "FETCHING...";
+    const btn = document.getElementById('search-btn');
+    btn.innerText = "FETCHING...";
 
-        try {
-            const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-            const data = await res.json();
+    try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
 
-            if (data.type === 'spotify_playlist') {
-                document.getElementById('track-artist').innerText = `Imported ${data.count} Spotify Tracks`;
-                currentQueue = data.tracks;
-                renderQueue(true);
-                // Auto-resolve first track
-                resolveAndPlaySpotifyTrack(0);
-            } else if (data.results && data.results.length > 0) {
-                currentQueue = data.results;
-                renderQueue(false);
-                playYouTubeItem(0);
-            }
-        } catch (e) {
-            alert("Search failed. Check endpoint connection.");
-        } finally {
-            btn.innerText = "SEARCH";
+        if (data.type === 'spotify_playlist') {
+            document.getElementById('track-artist').innerText = `Imported ${data.count} Tracks — Tap a track to play`;
+            currentQueue = data.tracks;
+            renderQueue(true);
+        } else if (data.results && data.results.length > 0) {
+            currentQueue = data.results;
+            renderQueue(false);
+            // Display top result info
+            document.getElementById('track-title').innerText = currentQueue[0].title;
+            document.getElementById('track-artist').innerText = "Tap track below to start playback";
+            document.getElementById('track-art').src = currentQueue[0].thumbnail;
         }
+    } catch (e) {
+        alert("Search failed. Check API endpoint connection.");
+    } finally {
+        btn.innerText = "SEARCH";
     }
+}
+
+// 2. Updated Direct-Gesture Play Function
+function playYouTubeItem(index) {
+    if (index < 0 || index >= currentQueue.length) return;
+    currentQueueIndex = index;
+    const item = currentQueue[index];
+    
+    document.getElementById('track-title').innerText = item.title;
+    document.getElementById('track-artist').innerText = item.artist;
+    document.getElementById('track-art').src = item.thumbnail;
+    
+    if (player && typeof player.loadVideoById === 'function') {
+        player.loadVideoById(item.id);
+        player.playVideo(); // Force play on user tap
+    }
+}
 
     // Resolve Spotify track query to YouTube Video ID dynamically
     async function resolveAndPlaySpotifyTrack(index) {
@@ -226,17 +243,6 @@
         } catch(e) { console.error(e); }
     }
 
-    function playYouTubeItem(index) {
-        if (index < 0 || index >= currentQueue.length) return;
-        currentQueueIndex = index;
-        const item = currentQueue[index];
-        
-        document.getElementById('track-title').innerText = item.title;
-        document.getElementById('track-artist').innerText = item.artist;
-        document.getElementById('track-art').src = item.thumbnail;
-        
-        player.loadVideoById(item.id);
-    }
 
     function togglePlay() {
         if (!player) return;
