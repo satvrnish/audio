@@ -193,10 +193,10 @@ async function executeSearch() {
         } else if (data.results && data.results.length > 0) {
             currentQueue = data.results;
             renderQueue(false);
-            // Display top result info
-            document.getElementById('track-title').innerText = currentQueue[0].title;
-            document.getElementById('track-artist').innerText = "Tap track below to start playback";
-            document.getElementById('track-art').src = currentQueue[0].thumbnail;
+            playYouTubeItem(0);
+        } else {
+            alert("No playable video results found for this query.");
+            document.getElementById('track-artist').innerText = "Search failed — Try different keywords";
         }
     } catch (e) {
         alert("Search failed. Check API endpoint connection.");
