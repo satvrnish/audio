@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sound</title>
     <style>
+        /* --- DESIGN SYSTEM (PAPER & INK EDITORIAL) --- */
         @font-face { font-family: 'TanPearl'; src: url('./TanPearl.otf'); }
 
         :root {
@@ -13,14 +14,22 @@
             --ink-faded: #888888;
             --border: rgba(0,0,0,0.1);
             --item-active: rgba(0,0,0,0.04);
+            --accent-gold: #B5952F;
+            --accent-red: #A33B3B;
+            
             --font-serif: 'TanPearl', serif; 
             --font-mono: 'Segoe UI', monospace;
             --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         body.dark-mode { 
-            --bg-paper: #111111; --ink-black: #E0E0E0; --ink-faded: #777777;
-            --item-active: rgba(255,255,255,0.05); --border: rgba(255,255,255,0.1); 
+            --bg-paper: #111111; 
+            --ink-black: #E0E0E0; 
+            --ink-faded: #777777;
+            --item-active: rgba(255,255,255,0.05); 
+            --border: rgba(255,255,255,0.1); 
+            --accent-red: #D65A5A;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -28,96 +37,212 @@
         body {
             margin: 0; background-color: var(--bg-paper); color: var(--ink-black);
             font-family: var(--font-mono); height: 100dvh; display: flex;
-            flex-direction: column; overflow: hidden; transition: 0.4s;
+            flex-direction: column; overflow: hidden; 
+            transition: background-color 0.4s ease, color 0.4s ease;
         }
 
+        /* --- HEADER --- */
         header {
-            padding: 20px; padding-top: calc(20px + var(--safe-top));
+            padding: 18px 20px; padding-top: calc(18px + var(--safe-top));
             display: flex; justify-content: space-between; align-items: center;
             border-bottom: 1px solid var(--border); flex-shrink: 0;
+            z-index: 10;
         }
-        .header-title { font-family: var(--font-serif); font-size: 24px; }
-        .icon-btn { background: none; border: none; padding: 0; cursor: pointer; color: var(--ink-black); }
+        .header-title { font-family: var(--font-serif); font-size: 24px; letter-spacing: -0.5px; }
+        .header-actions { display: flex; gap: 16px; align-items: center; }
+        
+        .icon-btn { 
+            background: none; border: none; padding: 0; cursor: pointer; 
+            color: var(--ink-black); display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .icon-btn:active { transform: scale(0.9); }
+        .icon-btn.active { opacity: 1; color: var(--accent-gold); }
 
+        .icon-moon { display: block; }
+        .icon-sun { display: none; }
+        body.dark-mode .icon-moon { display: none; }
+        body.dark-mode .icon-sun { display: block; }
+
+        /* --- MAIN STAGE (FOCUS PLAYER) --- */
         .player-stage {
             flex-grow: 1; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; padding: 20px; overflow-y: auto;
+            align-items: center; justify-content: center; padding: 25px 20px;
+            overflow-y: auto; text-align: center;
         }
 
+        /* VINYL SLEEVE ARTWORK FRAME */
+        .art-frame-wrapper {
+            position: relative; width: 220px; height: 220px; margin-bottom: 25px;
+        }
         .art-frame {
-            width: 200px; height: 200px; border: 1px solid var(--ink-black);
+            width: 220px; height: 220px; border: 1px solid var(--ink-black);
             background: var(--item-active); border-radius: 4px;
             display: flex; align-items: center; justify-content: center;
-            margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06); overflow: hidden; position: relative; z-index: 2;
         }
         .art-frame img { width: 100%; height: 100%; object-fit: cover; }
 
-        .track-title { font-family: var(--font-serif); font-size: 20px; margin-bottom: 4px; text-align: center; max-width: 280px; }
-        .track-artist { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; opacity: 0.6; margin-bottom: 15px; }
+        /* AUDIO SPECS BADGES */
+        .specs-row { display: flex; gap: 8px; margin-bottom: 15px; justify-content: center; }
+        .spec-badge {
+            font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px;
+            border: 1px solid var(--border); padding: 3px 7px; border-radius: 2px;
+            opacity: 0.5; font-weight: bold;
+        }
 
-        /* UNIFIED SEARCH INPUT BAR */
-        .search-wrapper { width: 100%; max-width: 320px; margin-bottom: 15px; }
-        .input-row { display: flex; gap: 8px; }
+        /* METADATA */
+        .track-title { 
+            font-family: var(--font-serif); font-size: 22px; margin-bottom: 6px; 
+            max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+        .track-artist { 
+            font-size: 11px; text-transform: uppercase; letter-spacing: 2px; 
+            opacity: 0.6; margin-bottom: 25px; max-width: 280px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* SCRUBBER */
+        .scrubber-container { width: 100%; max-width: 320px; margin-bottom: 25px; }
+        .time-readout { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.5; margin-top: 8px; font-weight: bold; }
+        .progress-track { 
+            width: 100%; height: 6px; background: var(--border); border-radius: 3px; 
+            cursor: pointer; position: relative; overflow: hidden;
+        }
+        .progress-fill { height: 100%; background: var(--ink-black); width: 0%; border-radius: 3px; transition: width 0.1s linear; }
+
+        /* PLAYER CONTROLS */
+        .controls-row { display: flex; align-items: center; gap: 20px; margin-bottom: 10px; }
+        .play-btn { 
+            width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--ink-black);
+            display: flex; align-items: center; justify-content: center; background: var(--bg-paper);
+            font-size: 18px; cursor: pointer; transition: transform 0.2s, background-color 0.2s;
+        }
+        .play-btn:active { transform: scale(0.92); background: var(--item-active); }
+
+        /* --- BOTTOM NAVIGATION BAR --- */
+        .bottom-nav {
+            border-top: 1px solid var(--border); padding: 12px 20px;
+            padding-bottom: calc(12px + var(--safe-bottom));
+            display: flex; justify-content: space-around; align-items: center;
+            background: var(--bg-paper); flex-shrink: 0; z-index: 10;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--ink-faded); background: none; border: none; cursor: pointer;
+            font-family: var(--font-mono); font-weight: bold;
+        }
+        .nav-item.active { color: var(--ink-black); }
+
+        /* --- SLIDING DRAWER OVERLAY --- */
+        .drawer-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-paper); z-index: 500; display: flex; flex-direction: column;
+            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding-top: var(--safe-top);
+        }
+        .drawer-overlay.open { transform: translateY(0); }
+
+        .drawer-header {
+            padding: 20px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border); flex-shrink: 0;
+        }
+        .drawer-tabs { display: flex; gap: 15px; overflow-x: auto; border-bottom: 1px solid var(--border); padding: 0 20px; flex-shrink: 0; }
+        .drawer-tab-btn {
+            padding: 12px 0; background: none; border: none; font-family: var(--font-serif);
+            font-size: 16px; color: var(--ink-faded); cursor: pointer; border-bottom: 2px solid transparent;
+            white-space: nowrap;
+        }
+        .drawer-tab-btn.active { color: var(--ink-black); border-bottom-color: var(--ink-black); }
+
+        .drawer-content { flex-grow: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
+
+        /* --- SEARCH INPUT & RESULTS --- */
+        .search-box-group { display: flex; gap: 8px; margin-bottom: 20px; }
         .native-input {
-            flex-grow: 1; padding: 10px 12px; background: var(--item-active); border: 1px solid var(--border);
-            color: var(--ink-black); border-radius: 4px; font-family: var(--font-mono); font-size: 11px; outline: none;
+            flex-grow: 1; padding: 12px; background: var(--item-active); border: 1px solid var(--border);
+            color: var(--ink-black); border-radius: 4px; font-family: var(--font-mono); font-size: 12px; outline: none;
         }
         .btn-panel {
             background: var(--ink-black); color: var(--bg-paper); border: none;
-            padding: 10px 14px; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+            padding: 12px 18px; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase;
             letter-spacing: 1px; cursor: pointer; border-radius: 4px; font-weight: bold;
         }
 
-        /* SCRUBBER & CONTROLS */
-        .scrubber-container { width: 100%; max-width: 320px; margin-bottom: 15px; }
-        .time-readout { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.5; margin-top: 6px; }
-        .progress-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; cursor: pointer; position: relative; }
-        .progress-fill { height: 100%; background: var(--ink-black); width: 0%; border-radius: 2px; }
+        /* TRACK ITEM ROW */
+        .track-row-item {
+            padding: 12px 0; border-bottom: 1px dashed var(--border); display: flex;
+            justify-content: space-between; align-items: center; cursor: pointer;
+        }
+        .track-row-item:active { background: var(--item-active); }
+        .track-info-left { display: flex; align-items: center; gap: 12px; max-width: 78%; }
+        .track-thumb { width: 40px; height: 40px; border-radius: 3px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); }
+        .track-text-group { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+        .track-row-title { font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-row-artist { font-size: 10px; opacity: 0.5; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-row-actions { display: flex; items-center: center; gap: 10px; }
 
-        .controls-row { display: flex; align-items: center; gap: 25px; margin-bottom: 15px; }
-        .control-btn { background: none; border: none; color: var(--ink-black); cursor: pointer; font-size: 18px; }
-        .play-btn { 
-            width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--ink-black);
-            display: flex; align-items: center; justify-content: center; background: var(--bg-paper); font-size: 14px;
+        /* --- CONTEXT MENU MODAL --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 1000; display: none;
+            align-items: flex-end; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-sheet {
+            background: var(--bg-paper); width: 100%; max-width: 500px; border-radius: 12px 12px 0 0;
+            padding: 25px 20px calc(25px + var(--safe-bottom)) 20px; border-top: 1px solid var(--border);
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .modal-track-header { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; border-bottom: 1px dashed var(--border); padding-bottom: 15px; }
+        .modal-option-btn {
+            width: 100%; padding: 14px 0; background: none; border: none; border-bottom: 1px solid var(--border);
+            color: var(--ink-black); font-family: var(--font-mono); font-size: 13px; text-align: left;
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
         }
 
-        /* RESULTS / QUEUE LEDGER */
-        .queue-ledger { width: 100%; max-width: 360px; max-height: 180px; overflow-y: auto; border-top: 1px dashed var(--border); }
-        .queue-item {
-            padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex;
-            justify-content: space-between; align-items: center; cursor: pointer; font-size: 11px;
-        }
-        .queue-item:active { background: var(--item-active); }
-        .queue-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
-        .queue-sub { opacity: 0.5; font-size: 9px; text-transform: uppercase; }
-
+        /* HIDDEN OFF-SCREEN PLAYER */
         #yt-player-hidden { position: absolute; top: -9999px; left: -9999px; width: 200px; height: 200px; }
     </style>
 </head>
 <body>
 
+    <!-- HEADER -->
     <header>
         <div class="header-title">Sound</div>
-        <button class="icon-btn" onclick="document.body.classList.toggle('dark-mode')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-        </button>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="toggleLikeCurrent()" id="header-like-btn" aria-label="Star Track">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </button>
+            <button class="icon-btn" onclick="toggleTheme()" aria-label="Toggle Theme">
+                <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+            </button>
+        </div>
     </header>
 
+    <!-- MAIN FOCUS PLAYER STAGE -->
     <div class="player-stage">
-        <div class="art-frame">
-            <img id="track-art" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='1'><circle cx='12' cy='12' r='10'/><circle cx='12' cy='12' r='3'/></svg>">
-        </div>
-        
-        <div class="track-title" id="track-title">Sound</div>
-        <div class="track-artist" id="track-artist">Search or Paste Spotify Link</div>
-
-        <div class="search-wrapper">
-            <div class="input-row">
-                <input type="text" id="search-input" class="native-input" placeholder="Song, YT link, or Spotify Playlist...">
-                <button class="btn-panel" id="search-btn" onclick="executeSearch()">SEARCH</button>
+        <div class="art-frame-wrapper">
+            <div class="art-frame">
+                <img id="track-art" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='1'><circle cx='12' cy='12' r='10'/><circle cx='12' cy='12' r='3'/></svg>">
             </div>
         </div>
 
+        <div class="specs-row">
+            <span class="spec-badge" id="spec-source">IDLE</span>
+            <span class="spec-badge">STEREO</span>
+            <span class="spec-badge">44.1 KHZ</span>
+        </div>
+
+        <div class="track-title" id="track-title">Sound Engine</div>
+        <div class="track-artist" id="track-artist">Search or Paste Link</div>
+
+        <!-- SCRUBBER -->
         <div class="scrubber-container">
             <div class="progress-track" onclick="seekTrack(event)">
                 <div class="progress-fill" id="progress-bar"></div>
@@ -128,25 +253,113 @@
             </div>
         </div>
 
+        <!-- TRANSPORT CONTROLS -->
         <div class="controls-row">
-            <button class="control-btn" onclick="playPrev()">⏮</button>
-            <button class="control-btn play-btn" onclick="togglePlay()" id="btn-play">▶</button>
-            <button class="control-btn" onclick="playNext()">⏭</button>
+            <button class="icon-btn" onclick="toggleShuffle()" id="btn-shuffle" title="Shuffle Mode">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+            </button>
+            <button class="icon-btn" onclick="playPrev()" style="font-size: 20px;">⏮</button>
+            <button class="play-btn" onclick="togglePlay()" id="btn-play">▶</button>
+            <button class="icon-btn" onclick="playNext()" style="font-size: 20px;">⏭</button>
+            <button class="icon-btn" onclick="toggleRepeat()" id="btn-repeat" title="Repeat Mode">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            </button>
         </div>
-
-        <div class="queue-ledger" id="queue-container"></div>
     </div>
 
+    <!-- BOTTOM NAVIGATION BAR -->
+    <div class="bottom-nav">
+        <button class="nav-item" onclick="openDrawerTab('search')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>Search</span>
+        </button>
+        <button class="nav-item" onclick="openDrawerTab('queue')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span>Queue</span>
+        </button>
+        <button class="nav-item" onclick="openDrawerTab('library')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span>Library</span>
+        </button>
+        <button class="nav-item" onclick="openDrawerTab('history')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>History</span>
+        </button>
+    </div>
+
+    <!-- SLIDING DRAWER OVERLAY -->
+    <div id="drawer-overlay" class="drawer-overlay">
+        <div class="drawer-header">
+            <div class="header-title" id="drawer-title">Explorer</div>
+            <button class="icon-btn" onclick="closeDrawer()" style="font-size: 26px; font-family: var(--font-mono);">×</button>
+        </div>
+
+        <div class="drawer-tabs">
+            <button class="drawer-tab-btn" id="dtab-search" onclick="switchDrawerTab('search')">Search & Import</button>
+            <button class="drawer-tab-btn" id="dtab-queue" onclick="switchDrawerTab('queue')">Active Queue</button>
+            <button class="drawer-tab-btn" id="dtab-library" onclick="switchDrawerTab('library')">Liked & Saved</button>
+            <button class="drawer-tab-btn" id="dtab-history" onclick="switchDrawerTab('history')">Play History</button>
+        </div>
+
+        <div class="drawer-content" id="drawer-content-root"></div>
+    </div>
+
+    <!-- CONTEXT MENU MODAL -->
+    <div id="context-modal" class="modal-overlay" onclick="closeContextMenu()">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div class="modal-track-header">
+                <img id="modal-art" src="" style="width: 44px; height: 44px; border-radius: 4px; object-fit: cover;">
+                <div style="overflow: hidden;">
+                    <div id="modal-title" style="font-weight: bold; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Track Name</div>
+                    <div id="modal-artist" style="font-size: 10px; opacity: 0.5; text-transform: uppercase;">Artist</div>
+                </div>
+            </div>
+
+            <button class="modal-option-btn" onclick="actionPlayNext()">
+                <span>Play Next in Queue</span> <span>⏭</span>
+            </button>
+            <button class="modal-option-btn" onclick="actionAddToQueue()"><span>Add to Bottom of Queue</span> <span>➕</span></button>
+            <button class="modal-option-btn" onclick="actionToggleLikeModal()"><span id="modal-like-text">Save to Liked Library</span> <span>⭐</span></button>
+            <button class="modal-option-btn" onclick="actionCopyLink()"><span>Copy Track Query Link</span> <span>🔗</span></button>
+            <button class="modal-option-btn" id="modal-remove-btn" style="color: var(--accent-red); display: none;" onclick="actionRemoveFromQueue()"><span>Remove from Queue</span> <span>🗑</span></button>
+        </div>
+    </div>
+
+    <!-- HIDDEN YOUTUBE PLAYER -->
     <div id="yt-player-hidden"></div>
 
 <script>
+    /* --- SYSTEM REGISTRIES & STATE --- */
+    let player = null;
+    let isPlaying = false;
+    let isShuffle = false;
+    let repeatMode = 0; // 0: off, 1: repeat queue, 2: repeat single
+    let progressTimer = null;
+
+    let currentQueue = [];
+    let currentQueueIndex = -1;
+    let activeModalTrack = null;
+    let activeModalIndex = -1;
+
+    // Local Storage Data Structures
+    let likedSongs = JSON.parse(localStorage.getItem('sound_liked_tracks')) || [];
+    let playHistory = JSON.parse(localStorage.getItem('sound_play_history')) || [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('sound_theme_dark') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+    });
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem('sound_theme_dark', document.body.classList.contains('dark-mode'));
+    }
+
+    /* --- YOUTUBE PLAYER ENGINE --- */
     var tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
-
-    let player, isPlaying = false, progressTimer;
-    let currentQueue = [];
-    let currentQueueIndex = 0;
 
     function onYouTubeIframeAPIReady() {
         player = new YT.Player('yt-player-hidden', {
@@ -159,50 +372,26 @@
     }
 
     function onPlayerStateChange(event) {
-        const artistLabel = document.getElementById('track-artist');
-        
+        const specSource = document.getElementById('spec-source');
         if (event.data == YT.PlayerState.BUFFERING) {
-            artistLabel.innerText = "Buffering stream...";
+            specSource.innerText = "BUFFERING";
         } else if (event.data == YT.PlayerState.PLAYING) {
             isPlaying = true;
             document.getElementById('btn-play').innerText = "⏸";
+            specSource.innerText = "STREAMING";
             progressTimer = setInterval(updateProgress, 500);
             syncTrackDetails();
-        } else if (event.data == YT.PlayerState.UNSTARTED) {
-            artistLabel.innerText = "Connecting to YouTube...";
+        } else if (event.data == YT.PlayerState.PAUSED) {
+            isPlaying = false;
+            document.getElementById('btn-play').innerText = "▶";
+            specSource.innerText = "PAUSED";
+            clearInterval(progressTimer);
         } else if (event.data == YT.PlayerState.ENDED) {
-            playNext();
-        }
-    }
-
-    async function executeSearch() {
-        const query = document.getElementById('search-input').value.trim();
-        if (!query) return;
-
-        const btn = document.getElementById('search-btn');
-        btn.innerText = "FETCHING...";
-
-        try {
-            const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-            const data = await res.json();
-
-            if (data.type === 'spotify_playlist') {
-                document.getElementById('track-artist').innerText = `Imported ${data.count} Tracks — Tap a track to play`;
-                currentQueue = data.tracks;
-                renderQueue(true);
-            } else if (data.results && data.results.length > 0) {
-                currentQueue = data.results;
-                renderQueue(false);
-                document.getElementById('track-title').innerText = currentQueue[0].title;
-                document.getElementById('track-artist').innerText = "Tap track below to start playback";
-                document.getElementById('track-art').src = currentQueue[0].thumbnail;
+            if (repeatMode === 2) {
+                player.playVideo();
             } else {
-                alert("No video results found. Try different keywords!");
+                playNext();
             }
-        } catch (e) {
-            alert("Search failed. Check API endpoint connection.");
-        } finally {
-            btn.innerText = "SEARCH";
         }
     }
 
@@ -210,11 +399,14 @@
         if (index < 0 || index >= currentQueue.length) return;
         currentQueueIndex = index;
         const item = currentQueue[index];
-        
+
         document.getElementById('track-title').innerText = item.title;
         document.getElementById('track-artist').innerText = item.artist;
-        document.getElementById('track-art').src = item.thumbnail;
+        document.getElementById('track-art').src = item.thumbnail || `https://img.youtube.com/vi/${item.id}/hqdefault.jpg`;
         
+        updateHeaderLikeStatus();
+        addToHistory(item);
+
         if (player && typeof player.loadVideoById === 'function') {
             player.loadVideoById(item.id);
             player.playVideo();
@@ -225,12 +417,13 @@
         if (index < 0 || index >= currentQueue.length) return;
         currentQueueIndex = index;
         const item = currentQueue[index];
-        
+
         document.getElementById('track-title').innerText = item.title;
-        document.getElementById('track-artist').innerText = item.artist + " (Matching YT...)";
+        document.getElementById('track-artist').innerText = item.artist + " (Resolving...)";
+        document.getElementById('spec-source').innerText = "SEARCHING";
 
         try {
-            const res = await fetch(`/api/search?q=${encodeURIComponent(item.searchQuery)}`);
+            const res = await fetch(`/api/search?q=${encodeURIComponent(item.searchQuery || item.title + " " + item.artist)}`);
             const data = await res.json();
             if (data.results && data.results.length > 0) {
                 const matched = data.results[0];
@@ -238,40 +431,62 @@
                 item.thumbnail = matched.thumbnail;
                 playYouTubeItem(index);
             } else {
-                alert("Could not match this track on YouTube.");
+                alert("Could not match stream on YouTube.");
             }
-        } catch(e) { console.error(e); }
+        } catch (e) { console.error(e); }
     }
 
     function togglePlay() {
         if (!player) return;
+        if (currentQueueIndex === -1 && currentQueue.length > 0) {
+            playItemInQueue(0); return;
+        }
         if (isPlaying) player.pauseVideo(); else player.playVideo();
     }
 
     function playNext() {
+        if (currentQueue.length === 0) return;
+        
+        if (isShuffle) {
+            const randIdx = Math.floor(Math.random() * currentQueue.length);
+            playItemInQueue(randIdx);
+            return;
+        }
+
         if (currentQueueIndex + 1 < currentQueue.length) {
-            const nextIdx = currentQueueIndex + 1;
-            if (currentQueue[nextIdx].id) playYouTubeItem(nextIdx);
-            else resolveAndPlaySpotifyTrack(nextIdx);
+            playItemInQueue(currentQueueIndex + 1);
+        } else if (repeatMode === 1) {
+            playItemInQueue(0);
         }
     }
 
     function playPrev() {
+        if (currentQueue.length === 0) return;
         if (currentQueueIndex > 0) {
-            const prevIdx = currentQueueIndex - 1;
-            if (currentQueue[prevIdx].id) playYouTubeItem(prevIdx);
-            else resolveAndPlaySpotifyTrack(prevIdx);
+            playItemInQueue(currentQueueIndex - 1);
         }
     }
 
-    function syncTrackDetails() {
-        if (!player || !player.getVideoData) return;
-        const data = player.getVideoData();
-        if (data && data.title && !currentQueue[currentQueueIndex]?.artist?.includes("Spotify")) {
-            document.getElementById('track-title').innerText = data.title;
-            document.getElementById('track-artist').innerText = data.author;
-            document.getElementById('track-art').src = `https://img.youtube.com/vi/${data.video_id}/hqdefault.jpg`;
+    function playItemInQueue(index) {
+        const item = currentQueue[index];
+        if (!item) return;
+        if (item.id) playYouTubeItem(index);
+        else resolveAndPlaySpotifyTrack(index);
+        if (document.getElementById('drawer-overlay').classList.contains('open')) {
+            renderActiveQueue();
         }
+    }
+
+    function toggleShuffle() {
+        isShuffle = !isShuffle;
+        document.getElementById('btn-shuffle').classList.toggle('active', isShuffle);
+    }
+
+    function toggleRepeat() {
+        repeatMode = (repeatMode + 1) % 3; // 0: off, 1: queue, 2: single
+        const btn = document.getElementById('btn-repeat');
+        btn.classList.toggle('active', repeatMode > 0);
+        btn.setAttribute('title', repeatMode === 2 ? 'Repeat Single Track' : (repeatMode === 1 ? 'Repeat Queue' : 'Repeat Off'));
     }
 
     function updateProgress() {
@@ -298,22 +513,281 @@
         return `${m}:${s}`;
     }
 
-    function renderQueue(isSpotify = false) {
-        const container = document.getElementById('queue-container');
-        container.innerHTML = '';
-        currentQueue.forEach((item, i) => {
-            const div = document.createElement('div');
-            div.className = 'queue-item';
-            div.onclick = () => isSpotify ? resolveAndPlaySpotifyTrack(i) : playYouTubeItem(i);
-            div.innerHTML = `
-                <div>
-                    <div class="queue-title">${item.title}</div>
-                    <div class="queue-sub">${item.artist}</div>
+    function syncTrackDetails() {
+        if (!player || !player.getVideoData) return;
+        const data = player.getVideoData();
+        const activeTrack = currentQueue[currentQueueIndex];
+        if (data && data.title && activeTrack && !activeTrack.artist.includes("Spotify")) {
+            document.getElementById('track-title').innerText = data.title;
+            document.getElementById('track-artist').innerText = data.author;
+            document.getElementById('track-art').src = `https://img.youtube.com/vi/${data.video_id}/hqdefault.jpg`;
+        }
+    }
+
+    /* --- DRAWER & NAVIGATION SYSTEM --- */
+    function openDrawerTab(tab) {
+        document.getElementById('drawer-overlay').classList.add('open');
+        switchDrawerTab(tab);
+    }
+
+    function closeDrawer() {
+        document.getElementById('drawer-overlay').classList.remove('open');
+    }
+
+    function switchDrawerTab(tab) {
+        document.querySelectorAll('.drawer-tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`dtab-${tab}`).classList.add('active');
+
+        const root = document.getElementById('drawer-content-root');
+        root.innerHTML = '';
+
+        if (tab === 'search') renderSearchTab(root);
+        else if (tab === 'queue') renderActiveQueue(root);
+        else if (tab === 'library') renderLibrary(root);
+        else if (tab === 'history') renderHistory(root);
+    }
+
+    /* --- DRAWER TABS: SEARCH & IMPORT --- */
+    function renderSearchTab(root) {
+        root.innerHTML = `
+            <div class="search-box-group">
+                <input type="text" id="drawer-search-input" class="native-input" placeholder="Song, YT link, or Spotify Playlist...">
+                <button class="btn-panel" id="drawer-search-btn" onclick="executeSearch()">SEARCH</button>
+            </div>
+            <div id="search-results-target">
+                <div style="text-align: center; padding: 40px 20px; color: var(--ink-faded); font-size: 11px; font-style: italic;">
+                    Paste a Spotify Playlist URL or search for any song across YouTube.
                 </div>
-                <div style="font-size: 10px; opacity: 0.4;">${isSpotify ? 'SPOTIFY' : (item.duration || 'YT')}</div>
-            `;
-            container.appendChild(div);
+            </div>
+        `;
+    }
+
+    async function executeSearch() {
+        const input = document.getElementById('drawer-search-input');
+        if (!input) return;
+        const query = input.value.trim();
+        if (!query) return;
+
+        const btn = document.getElementById('drawer-search-btn');
+        btn.innerText = "FETCHING...";
+
+        try {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+            const target = document.getElementById('search-results-target');
+            target.innerHTML = '';
+
+            if (data.type === 'spotify_playlist') {
+                currentQueue = data.tracks;
+                target.innerHTML = `<div style="font-size: 10px; font-weight: bold; opacity: 0.5; margin-bottom: 15px; text-transform: uppercase;">Imported ${data.count} Spotify Tracks — Added to Queue</div>`;
+                data.tracks.forEach((track, i) => {
+                    target.appendChild(createTrackRowElement(track, i, () => playItemInQueue(i), true));
+                });
+            } else if (data.results && data.results.length > 0) {
+                target.innerHTML = `<div style="font-size: 10px; font-weight: bold; opacity: 0.5; margin-bottom: 15px; text-transform: uppercase;">Search Results (${data.results.length})</div>`;
+                data.results.forEach((track, i) => {
+                    target.appendChild(createTrackRowElement(track, i, () => {
+                        currentQueue = [track];
+                        playItemInQueue(0);
+                    }, false));
+                });
+            } else {
+                target.innerHTML = `<div style="text-align: center; padding: 30px; font-size: 12px; opacity: 0.5;">No playable search results found.</div>`;
+            }
+        } catch (e) {
+            alert("Search routing failed. Verify Vercel API endpoint.");
+        } finally {
+            if (btn) btn.innerText = "SEARCH";
+        }
+    }
+
+    /* --- DRAWER TABS: ACTIVE QUEUE --- */
+    function renderActiveQueue(container) {
+        const root = container || document.getElementById('drawer-content-root');
+        root.innerHTML = '';
+
+        if (currentQueue.length === 0) {
+            root.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--ink-faded); font-size: 11px; font-style: italic;">Active Queue Empty. Search or import songs to populate.</div>`;
+            return;
+        }
+
+        const topBar = document.createElement('div');
+        topBar.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;";
+        topBar.innerHTML = `
+            <span style="font-size: 10px; font-weight: bold; opacity: 0.5; text-transform: uppercase;">${currentQueue.length} Tracks in Queue</span>
+            <button onclick="clearQueue()" style="background: none; border: none; color: var(--accent-red); font-size: 10px; font-family: var(--font-mono); font-weight: bold; cursor: pointer; text-transform: uppercase;">Clear Queue</button>
+        `;
+        root.appendChild(topBar);
+
+        currentQueue.forEach((track, i) => {
+            const isPlayingThis = (i === currentQueueIndex);
+            const row = createTrackRowElement(track, i, () => playItemInQueue(i), false, isPlayingThis, true);
+            root.appendChild(row);
         });
+    }
+
+    function clearQueue() {
+        if (confirm("Clear active queue?")) {
+            currentQueue = [];
+            currentQueueIndex = -1;
+            renderActiveQueue();
+        }
+    }
+
+    /* --- DRAWER TABS: LIKED LIBRARY & HISTORY --- */
+    function renderLibrary(container) {
+        const root = container || document.getElementById('drawer-content-root');
+        root.innerHTML = '';
+
+        if (likedSongs.length === 0) {
+            root.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--ink-faded); font-size: 11px; font-style: italic;">No starred songs. Star tracks to save them to your library ledger.</div>`;
+            return;
+        }
+
+        root.innerHTML = `<div style="font-size: 10px; font-weight: bold; opacity: 0.5; margin-bottom: 15px; text-transform: uppercase;">Starred Library (${likedSongs.length})</div>`;
+        likedSongs.forEach((track, i) => {
+            root.appendChild(createTrackRowElement(track, i, () => {
+                currentQueue = [...likedSongs];
+                playItemInQueue(i);
+            }));
+        });
+    }
+
+    function renderHistory(container) {
+        const root = container || document.getElementById('drawer-content-root');
+        root.innerHTML = '';
+
+        if (playHistory.length === 0) {
+            root.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--ink-faded); font-size: 11px; font-style: italic;">History log empty. Played tracks appear here.</div>`;
+            return;
+        }
+
+        root.innerHTML = `<div style="font-size: 10px; font-weight: bold; opacity: 0.5; margin-bottom: 15px; text-transform: uppercase;">Chronological Play History (${playHistory.length})</div>`;
+        playHistory.forEach((track, i) => {
+            root.appendChild(createTrackRowElement(track, i, () => {
+                currentQueue = [track];
+                playItemInQueue(0);
+            }));
+        });
+    }
+
+    /* --- TRACK ROW ELEMENT BUILDER --- */
+    function createTrackRowElement(track, index, playCallback, isSpotify = false, isActive = false, inQueueContext = false) {
+        const div = document.createElement('div');
+        div.className = 'track-row-item';
+        if (isActive) div.style.background = 'var(--item-active)';
+
+        const thumbUrl = track.thumbnail || (track.id ? `https://img.youtube.com/vi/${track.id}/hqdefault.jpg` : '');
+
+        div.innerHTML = `
+            <div class="track-info-left" onclick="event.stopPropagation();">
+                ${thumbUrl ? `<img src="${thumbUrl}" class="track-thumb">` : ''}
+                <div class="track-text-group">
+                    <div class="track-row-title" style="${isActive ? 'color: var(--accent-gold);' : ''}">${track.title}</div>
+                    <div class="track-row-artist">${track.artist}</div>
+                </div>
+            </div>
+            <div class="track-row-actions">
+                <button class="icon-btn" onclick="openContextMenu(event, ${JSON.stringify(track).replace(/"/g, '&quot;')}, ${index}, ${inQueueContext})" style="padding: 6px; font-size: 16px;">⋮</button>
+            </div>
+        `;
+        div.onclick = playCallback;
+        return div;
+    }
+
+    /* --- CONTEXT MENU SYSTEM --- */
+    function openContextMenu(event, track, index, inQueueContext) {
+        event.stopPropagation();
+        activeModalTrack = track;
+        activeModalIndex = index;
+
+        document.getElementById('modal-art').src = track.thumbnail || (track.id ? `https://img.youtube.com/vi/${track.id}/hqdefault.jpg` : '');
+        document.getElementById('modal-title').innerText = track.title;
+        document.getElementById('modal-artist').innerText = track.artist;
+
+        const isLiked = likedSongs.some(s => s.title === track.title);
+        document.getElementById('modal-like-text').innerText = isLiked ? "Remove from Starred Library" : "Save to Starred Library";
+
+        const removeBtn = document.getElementById('modal-remove-btn');
+        removeBtn.style.display = inQueueContext ? 'flex' : 'none';
+
+        document.getElementById('context-modal').classList.add('open');
+    }
+
+    function closeContextMenu() {
+        document.getElementById('context-modal').classList.remove('open');
+    }
+
+    function actionPlayNext() {
+        if (!activeModalTrack) return;
+        currentQueue.splice(currentQueueIndex + 1, 0, activeModalTrack);
+        closeContextMenu();
+        alert("Inserted as Next Track.");
+    }
+
+    function actionAddToQueue() {
+        if (!activeModalTrack) return;
+        currentQueue.push(activeModalTrack);
+        closeContextMenu();
+        alert("Appended to bottom of Queue.");
+    }
+
+    function actionToggleLikeModal() {
+        if (!activeModalTrack) return;
+        toggleLikeTrack(activeModalTrack);
+        closeContextMenu();
+    }
+
+    function actionRemoveFromQueue() {
+        if (activeModalIndex > -1 && activeModalIndex < currentQueue.length) {
+            currentQueue.splice(activeModalIndex, 1);
+            if (activeModalIndex < currentQueueIndex) currentQueueIndex--;
+            renderActiveQueue();
+            closeContextMenu();
+        }
+    }
+
+    function actionCopyLink() {
+        if (!activeModalTrack) return;
+        const queryStr = `${activeModalTrack.title} ${activeModalTrack.artist}`;
+        navigator.clipboard.writeText(queryStr);
+        closeContextMenu();
+        alert("Track Query Copied to Clipboard.");
+    }
+
+    /* --- LIBRARY & HISTORY DATA ENGINE --- */
+    function toggleLikeCurrent() {
+        if (currentQueueIndex >= 0 && currentQueue[currentQueueIndex]) {
+            toggleLikeTrack(currentQueue[currentQueueIndex]);
+        }
+    }
+
+    function toggleLikeTrack(track) {
+        const idx = likedSongs.findIndex(s => s.title === track.title);
+        if (idx > -1) {
+            likedSongs.splice(idx, 1);
+        } else {
+            likedSongs.unshift(track);
+        }
+        localStorage.setItem('sound_liked_tracks', JSON.stringify(likedSongs));
+        updateHeaderLikeStatus();
+    }
+
+    function updateHeaderLikeStatus() {
+        const activeTrack = currentQueue[currentQueueIndex];
+        const btn = document.getElementById('header-like-btn');
+        if (activeTrack && likedSongs.some(s => s.title === activeTrack.title)) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+
+    function addToHistory(track) {
+        playHistory = playHistory.filter(s => s.title !== track.title);
+        playHistory.unshift(track);
+        if (playHistory.length > 50) playHistory.pop(); // Keep last 50 tracks
+        localStorage.setItem('sound_play_history', JSON.stringify(playHistory));
     }
 </script>
 </body>
