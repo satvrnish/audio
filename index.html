@@ -108,7 +108,7 @@
             <img id="track-art" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='1'><circle cx='12' cy='12' r='10'/><circle cx='12' cy='12' r='3'/></svg>">
         </div>
         
-        <div class="track-title" id="track-title">Sound Engine</div>
+        <div class="track-title" id="track-title">Sound</div>
         <div class="track-artist" id="track-artist">Search or Paste Spotify Link</div>
 
         <div class="search-wrapper">
@@ -193,10 +193,10 @@ async function executeSearch() {
         } else if (data.results && data.results.length > 0) {
             currentQueue = data.results;
             renderQueue(false);
-            playYouTubeItem(0);
-        } else {
-            alert("No playable video results found for this query.");
-            document.getElementById('track-artist').innerText = "Search failed — Try different keywords";
+            // Display top result info
+            document.getElementById('track-title').innerText = currentQueue[0].title;
+            document.getElementById('track-artist').innerText = "Tap track below to start playback";
+            document.getElementById('track-art').src = currentQueue[0].thumbnail;
         }
     } catch (e) {
         alert("Search failed. Check API endpoint connection.");
