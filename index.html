@@ -16,6 +16,7 @@
             --item-active: rgba(0,0,0,0.04);
             --accent-gold: #B5952F;
             --accent-red: #A33B3B;
+            --accent-green: #2B6A4B;
             
             --font-serif: 'TanPearl', serif; 
             --font-mono: 'Segoe UI', monospace;
@@ -30,6 +31,7 @@
             --item-active: rgba(255,255,255,0.05); 
             --border: rgba(255,255,255,0.1); 
             --accent-red: #D65A5A;
+            --accent-green: #58D68D;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -43,13 +45,13 @@
 
         /* --- HEADER --- */
         header {
-            padding: 18px 20px; padding-top: calc(18px + var(--safe-top));
+            padding: 16px 20px; padding-top: calc(16px + var(--safe-top));
             display: flex; justify-content: space-between; align-items: center;
             border-bottom: 1px solid var(--border); flex-shrink: 0;
             z-index: 10;
         }
         .header-title { font-family: var(--font-serif); font-size: 24px; letter-spacing: -0.5px; }
-        .header-actions { display: flex; gap: 16px; align-items: center; }
+        .header-actions { display: flex; gap: 14px; align-items: center; }
         
         .icon-btn { 
             background: none; border: none; padding: 0; cursor: pointer; 
@@ -67,48 +69,64 @@
         /* --- MAIN STAGE (FOCUS PLAYER) --- */
         .player-stage {
             flex-grow: 1; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; padding: 25px 20px;
+            align-items: center; justify-content: center; padding: 20px 20px;
             overflow-y: auto; text-align: center;
         }
 
         .art-frame-wrapper {
-            position: relative; width: 220px; height: 220px; margin-bottom: 25px;
+            position: relative; width: 210px; height: 210px; margin-bottom: 15px;
         }
         .art-frame {
-            width: 220px; height: 220px; border: 1px solid var(--ink-black);
+            width: 210px; height: 210px; border: 1px solid var(--ink-black);
             background: var(--item-active); border-radius: 4px;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.06); overflow: hidden; position: relative; z-index: 2;
         }
         .art-frame img { width: 100%; height: 100%; object-fit: cover; }
 
-        .specs-row { display: flex; gap: 8px; margin-bottom: 15px; justify-content: center; }
-        .spec-badge {
-            font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px;
-            border: 1px solid var(--border); padding: 3px 7px; border-radius: 2px;
-            opacity: 0.5; font-weight: bold;
+        /* --- ANALOG STEREO VU METER --- */
+        .vu-meter-container {
+            width: 210px; background: var(--item-active); border: 1px solid var(--border);
+            border-radius: 4px; padding: 8px 12px; margin-bottom: 15px; display: flex;
+            flex-direction: column; gap: 6px;
         }
+        .vu-channel { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+        .vu-label { font-size: 8px; font-weight: bold; opacity: 0.5; width: 10px; }
+        .vu-gauge-track { flex-grow: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; position: relative; }
+        .vu-gauge-needle { height: 100%; width: 0%; background: var(--ink-black); border-radius: 2px; transition: width 0.08s ease-out; }
+        .vu-peak-led { width: 4px; height: 4px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+        .vu-peak-led.lit { background: var(--accent-red); box-shadow: 0 0 4px var(--accent-red); }
+
+        /* SPECS & BADGES */
+        .specs-row { display: flex; gap: 6px; margin-bottom: 12px; justify-content: center; flex-wrap: wrap; }
+        .spec-badge {
+            font-size: 8px; text-transform: uppercase; letter-spacing: 1px;
+            border: 1px solid var(--border); padding: 3px 6px; border-radius: 2px;
+            opacity: 0.5; font-weight: bold; cursor: pointer;
+        }
+        .spec-badge.active-spec { opacity: 1; border-color: var(--ink-black); color: var(--accent-gold); }
 
         .track-title { 
-            font-family: var(--font-serif); font-size: 22px; margin-bottom: 6px; 
+            font-family: var(--font-serif); font-size: 22px; margin-bottom: 4px; 
             max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             line-height: 1.2;
         }
         .track-artist { 
             font-size: 11px; text-transform: uppercase; letter-spacing: 2px; 
-            opacity: 0.6; margin-bottom: 25px; max-width: 280px;
+            opacity: 0.6; margin-bottom: 18px; max-width: 280px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
-        .scrubber-container { width: 100%; max-width: 320px; margin-bottom: 25px; }
-        .time-readout { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.5; margin-top: 8px; font-weight: bold; }
+        /* SCRUBBER */
+        .scrubber-container { width: 100%; max-width: 320px; margin-bottom: 20px; user-select: none; }
+        .time-readout { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.5; margin-top: 6px; font-weight: bold; }
         .progress-track { 
-            width: 100%; height: 6px; background: var(--border); border-radius: 3px; 
-            cursor: pointer; position: relative; overflow: hidden;
+            width: 100%; height: 10px; padding: 2px 0; cursor: pointer; position: relative;
         }
-        .progress-fill { height: 100%; background: var(--ink-black); width: 0%; border-radius: 3px; transition: width 0.1s linear; }
+        .progress-bg { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; position: relative; }
+        .progress-fill { height: 100%; background: var(--ink-black); width: 0%; border-radius: 3px; }
 
-        .controls-row { display: flex; align-items: center; gap: 20px; margin-bottom: 10px; }
+        .controls-row { display: flex; align-items: center; gap: 20px; margin-bottom: 5px; }
         .play-btn { 
             width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--ink-black);
             display: flex; align-items: center; justify-content: center; background: var(--bg-paper);
@@ -141,17 +159,16 @@
         .drawer-overlay.open { transform: translateY(0); }
 
         .drawer-header {
-            padding: 20px; display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 20px; display: flex; justify-content: space-between; align-items: center;
             border-bottom: 1px solid var(--border); flex-shrink: 0;
         }
         .drawer-tabs { display: flex; gap: 15px; overflow-x: auto; border-bottom: 1px solid var(--border); padding: 0 20px; flex-shrink: 0; }
         .drawer-tab-btn {
             padding: 12px 0; background: none; border: none; font-family: var(--font-serif);
-            font-size: 16px; color: var(--ink-faded); cursor: pointer; border-bottom: 2px solid transparent;
+            font-size: 15px; color: var(--ink-faded); cursor: pointer; border-bottom: 2px solid transparent;
             white-space: nowrap;
         }
         .drawer-tab-btn.active { color: var(--ink-black); border-bottom-color: var(--ink-black); }
-
         .drawer-content { flex-grow: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
 
         /* --- INPUT & BUTTON MODULES --- */
@@ -204,7 +221,7 @@
         .modal-sheet {
             background: var(--bg-paper); width: 100%; max-width: 500px; border-radius: 12px 12px 0 0;
             padding: 25px 20px calc(25px + var(--safe-bottom)) 20px; border-top: 1px solid var(--border);
-            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 80vh; overflow-y: auto;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 85vh; overflow-y: auto;
         }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         
@@ -213,6 +230,12 @@
             width: 100%; padding: 14px 0; background: none; border: none; border-bottom: 1px solid var(--border);
             color: var(--ink-black); font-family: var(--font-mono); font-size: 13px; text-align: left;
             cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        }
+
+        /* LYRICS VIEW */
+        .lyrics-scroll-pane {
+            font-family: var(--font-mono); font-size: 13px; line-height: 1.9; white-space: pre-wrap;
+            opacity: 0.85; text-align: left; padding: 10px 0 40px 0;
         }
 
         #yt-player-hidden { position: absolute; top: -9999px; left: -9999px; width: 200px; height: 200px; }
@@ -224,7 +247,16 @@
     <header>
         <div class="header-title">Sound</div>
         <div class="header-actions">
-            <button class="icon-btn" onclick="toggleLikeCurrent()" id="header-like-btn" aria-label="Star Track">
+            <button class="icon-btn" onclick="openSleepTimerModal()" id="header-timer-btn" title="Sleep Timer">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </button>
+            <button class="icon-btn" onclick="openLyricsDrawer()" title="Lyrics">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </button>
+            <button class="icon-btn" onclick="openCloudModal()" title="Cloud Sync">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+            </button>
+            <button class="icon-btn" onclick="toggleLikeCurrent()" id="header-like-btn" title="Star Track">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             </button>
             <button class="icon-btn" onclick="toggleTheme()" aria-label="Toggle Theme">
@@ -242,18 +274,36 @@
             </div>
         </div>
 
+        <!-- ANALOG DUAL STEREO VU METER -->
+        <div class="vu-meter-container">
+            <div class="vu-channel">
+                <span class="vu-label">L</span>
+                <div class="vu-gauge-track"><div class="vu-gauge-needle" id="vu-needle-left"></div></div>
+                <div class="vu-peak-led" id="vu-peak-left"></div>
+            </div>
+            <div class="vu-channel">
+                <span class="vu-label">R</span>
+                <div class="vu-gauge-track"><div class="vu-gauge-needle" id="vu-needle-right"></div></div>
+                <div class="vu-peak-led" id="vu-peak-right"></div>
+            </div>
+        </div>
+
         <div class="specs-row">
             <span class="spec-badge" id="spec-source">IDLE</span>
             <span class="spec-badge">STEREO</span>
-            <span class="spec-badge">44.1 KHZ</span>
+            <span class="spec-badge" onclick="openLyricsDrawer()">LYRICS</span>
+            <span class="spec-badge" id="spec-timer" onclick="openSleepTimerModal()">TIMER: OFF</span>
         </div>
 
         <div class="track-title" id="track-title">Sound Engine</div>
         <div class="track-artist" id="track-artist">Search any Track, Artist or Album</div>
 
+        <!-- TOUCH & DRAG SCRUBBER -->
         <div class="scrubber-container">
-            <div class="progress-track" onclick="seekTrack(event)">
-                <div class="progress-fill" id="progress-bar"></div>
+            <div class="progress-track" id="scrubber-track">
+                <div class="progress-bg">
+                    <div class="progress-fill" id="progress-bar"></div>
+                </div>
             </div>
             <div class="time-readout">
                 <span id="time-current">0:00</span>
@@ -356,27 +406,96 @@
         </div>
     </div>
 
+    <!-- SLEEP TIMER MODAL -->
+    <div id="sleep-timer-modal" class="modal-overlay" onclick="closeSleepTimerModal()">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div style="font-family: var(--font-serif); font-size: 20px; margin-bottom: 6px;">Sleep Timer</div>
+            <div style="font-size: 11px; opacity: 0.6; margin-bottom: 20px;">Auto-pause audio after a set duration.</div>
+            
+            <button class="modal-option-btn" onclick="setSleepTimer(15)"><span>15 Minutes</span> <span>⏱</span></button>
+            <button class="modal-option-btn" onclick="setSleepTimer(30)"><span>30 Minutes</span> <span>⏱</span></button>
+            <button class="modal-option-btn" onclick="setSleepTimer(45)"><span>45 Minutes</span> <span>⏱</span></button>
+            <button class="modal-option-btn" onclick="setSleepTimer(60)"><span>60 Minutes (1 Hour)</span> <span>⏱</span></button>
+            <button class="modal-option-btn" onclick="setSleepTimer('end_of_track')"><span>End of Current Track</span> <span>🌙</span></button>
+            <button class="modal-option-btn" style="color: var(--accent-red);" onclick="clearSleepTimer()"><span>Turn Off Timer</span> <span>✕</span></button>
+        </div>
+    </div>
+
+    <!-- OPEN LYRICS DRAWER -->
+    <div id="lyrics-modal" class="modal-overlay" onclick="closeLyricsDrawer()">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px dashed var(--border); padding-bottom: 10px;">
+                <div>
+                    <div style="font-family: var(--font-serif); font-size: 18px;" id="lyrics-track-title">Lyrics</div>
+                    <div style="font-size: 10px; opacity: 0.5; text-transform: uppercase;" id="lyrics-track-artist">Open Lyrics</div>
+                </div>
+                <button class="icon-btn" onclick="closeLyricsDrawer()" style="font-size: 22px;">×</button>
+            </div>
+            <div class="lyrics-scroll-pane" id="lyrics-content-target">Loading lyrics...</div>
+        </div>
+    </div>
+
+    <!-- JSONBIN CLOUD INTEGRATION MODAL -->
+    <div id="cloud-modal" class="modal-overlay" onclick="closeCloudModal()">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div style="font-family: var(--font-serif); font-size: 20px; margin-bottom: 6px;">Cloud Sync Bridge</div>
+            <div style="font-size: 11px; opacity: 0.6; line-height: 1.4; margin-bottom: 20px;">
+                Sync your custom playlists, starred tracks, and history across all devices securely using JSONBin.
+            </div>
+
+            <label style="font-size: 10px; text-transform: uppercase; opacity: 0.5; font-weight: bold;">Master API Key</label>
+            <input type="text" id="inp-cloud-key" class="native-input" style="margin-top: 4px; margin-bottom: 15px;">
+
+            <label style="font-size: 10px; text-transform: uppercase; opacity: 0.5; font-weight: bold;">Container Bin Identifier</label>
+            <input type="text" id="inp-cloud-bin" class="native-input" placeholder="Leave empty to create new container" style="margin-top: 4px; margin-bottom: 20px;">
+
+            <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                <button class="btn-panel" style="flex: 1;" id="btn-cloud-link" onclick="initializeCloudConnection()">Link / Create</button>
+                <button class="btn-panel outline" style="flex: 1;" onclick="pullFromCloud()">Restore State</button>
+            </div>
+
+            <div id="cloud-telemetry" style="display: none; border-top: 1px dashed var(--border); padding-top: 15px; font-size: 11px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>STATUS</span><span id="txt-cloud-status" style="color: var(--accent-green); font-weight: bold;">CONNECTED</span></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span>CONTAINER</span><span id="txt-cloud-bin" style="font-family: var(--font-mono); font-weight: bold;">--</span></div>
+                <button class="btn-panel outline" style="width: 100%; font-size: 10px;" onclick="pushToCloud(true)">Force Save Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JSON EXPORT / IMPORT MODAL -->
+    <div id="backup-modal" class="modal-overlay" onclick="closeBackupModal()">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div style="font-family: var(--font-serif); font-size: 20px; margin-bottom: 6px;">Backup & Migration</div>
+            <div style="font-size: 11px; opacity: 0.6; margin-bottom: 20px;">Export or restore your full music database.</div>
+
+            <button class="btn-panel" style="width: 100%; margin-bottom: 12px;" onclick="downloadLibraryJSON()">Download JSON Backup</button>
+            
+            <button class="btn-panel outline" style="width: 100%; margin-bottom: 15px;" onclick="triggerFileInput()">Import JSON File</button>
+            <input type="file" id="inp-json-file" accept=".json" style="display: none;" onchange="handleJSONFileImport(event)">
+        </div>
+    </div>
+
     <!-- HIDDEN YOUTUBE PLAYER -->
     <div id="yt-player-hidden"></div>
 
 <script>
-    /* --- STORAGE HELPERS --- */
+    /* --- STORAGE & DATA SAFE GET --- */
     function safeGet(key, fallback = []) {
         try {
             const raw = localStorage.getItem(key);
             return raw ? JSON.parse(raw) : fallback;
         } catch(e) {
-            console.warn("Storage reset for:", key);
             return fallback;
         }
     }
 
-    /* --- SYSTEM STATE --- */
+    /* --- SYSTEM REGISTRIES --- */
     let player = null;
     let isPlaying = false;
     let isShuffle = false;
     let repeatMode = 0; 
     let progressTimer = null;
+    let vuAnimationTimer = null;
 
     let currentQueue = [];
     let currentQueueIndex = -1;
@@ -386,14 +505,25 @@
     let likedSongs = safeGet('sound_liked_tracks', []);
     let playHistory = safeGet('sound_play_history', []);
     let customPlaylists = safeGet('sound_custom_playlists', []);
+    let cloudConfig = safeGet('sound_cloud_config', { apiKey: '', binId: '' });
 
     let editingPlaylistId = null;
     let viewingPlaylistId = null;
+
+    // Sleep timer state
+    let sleepTimerTargetMs = 0;
+    let sleepTimerInterval = null;
+    let sleepOnEndOfTrack = false;
+
+    // Cloud auto-sync debounce
+    let cloudSyncDebounceTimer = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         if (localStorage.getItem('sound_theme_dark') === 'true') {
             document.body.classList.add('dark-mode');
         }
+        setupScrubberListeners();
+        evaluateCloudVisualState();
     });
 
     function toggleTheme() {
@@ -401,7 +531,7 @@
         localStorage.setItem('sound_theme_dark', document.body.classList.contains('dark-mode'));
     }
 
-    /* --- YOUTUBE ENGINE --- */
+    /* --- YOUTUBE ENGINE & MEDIASESSION INTEGRATION --- */
     var tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
@@ -426,13 +556,22 @@
             if (specSource) specSource.innerText = "STREAMING";
             clearInterval(progressTimer);
             progressTimer = setInterval(updateProgress, 500);
+            startVuMeter();
+            updateMediaSessionPlayback(true);
             syncTrackDetails();
         } else if (event.data == YT.PlayerState.PAUSED) {
             isPlaying = false;
             document.getElementById('btn-play').innerText = "▶";
             if (specSource) specSource.innerText = "PAUSED";
             clearInterval(progressTimer);
+            stopVuMeter();
+            updateMediaSessionPlayback(false);
         } else if (event.data == YT.PlayerState.ENDED) {
+            if (sleepOnEndOfTrack) {
+                clearSleepTimer();
+                togglePlay();
+                return;
+            }
             if (repeatMode === 2) {
                 player.playVideo();
             } else {
@@ -452,6 +591,7 @@
         
         updateHeaderLikeStatus();
         addToHistory(item);
+        setupMediaSession(item);
 
         if (player && typeof player.loadVideoById === 'function') {
             player.loadVideoById(item.id);
@@ -534,22 +674,100 @@
         btn.setAttribute('title', repeatMode === 2 ? 'Repeat Single Track' : (repeatMode === 1 ? 'Repeat Queue' : 'Repeat Off'));
     }
 
+    /* --- MEDIASESSION API SYSTEM --- */
+    function setupMediaSession(track) {
+        if ('mediaSession' in navigator && track) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: track.title,
+                artist: track.artist,
+                album: track.album || 'Sound',
+                artwork: [
+                    { src: track.thumbnail || (track.id ? `https://img.youtube.com/vi/${track.id}/hqdefault.jpg` : ''), sizes: '512x512', type: 'image/jpeg' }
+                ]
+            });
+
+            navigator.mediaSession.setActionHandler('play', () => togglePlay());
+            navigator.mediaSession.setActionHandler('pause', () => togglePlay());
+            navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
+            navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
+            navigator.mediaSession.setActionHandler('seekto', (details) => {
+                if (details.seekTime && player && player.getDuration) {
+                    player.seekTo(details.seekTime, true);
+                }
+            });
+        }
+    }
+
+    function updateMediaSessionPlayback(playing) {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+        }
+    }
+
+    /* --- TOUCH-DRAG SCRUBBER SYSTEM --- */
+    let isScrubbing = false;
+
+    function setupScrubberListeners() {
+        const track = document.getElementById('scrubber-track');
+
+        const getPercent = (e) => {
+            const rect = track.getBoundingClientRect();
+            const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+            return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        };
+
+        const onStart = (e) => {
+            if (!player || !player.getDuration || player.getDuration() <= 0) return;
+            isScrubbing = true;
+            onMove(e);
+        };
+
+        const onMove = (e) => {
+            if (!isScrubbing) return;
+            const pct = getPercent(e);
+            document.getElementById('progress-bar').style.width = `${pct * 100}%`;
+            const dur = player.getDuration() || 0;
+            document.getElementById('time-current').innerText = formatTime(dur * pct);
+        };
+
+        const onEnd = (e) => {
+            if (!isScrubbing) return;
+            isScrubbing = false;
+            const pct = getPercent(e);
+            if (player && player.seekTo && player.getDuration) {
+                player.seekTo(player.getDuration() * pct, true);
+            }
+        };
+
+        track.addEventListener('mousedown', onStart);
+        track.addEventListener('touchstart', onStart, { passive: true });
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, { passive: true });
+
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('touchend', onEnd);
+    }
+
     function updateProgress() {
-        if (!player || !player.getCurrentTime) return;
+        if (isScrubbing || !player || !player.getCurrentTime) return;
         const cur = player.getCurrentTime();
         const tot = player.getDuration();
         if (tot > 0) {
             document.getElementById('progress-bar').style.width = `${(cur / tot) * 100}%`;
             document.getElementById('time-current').innerText = formatTime(cur);
             document.getElementById('time-total').innerText = formatTime(tot);
-        }
-    }
 
-    function seekTrack(event) {
-        if (!player || !player.getDuration) return;
-        const rect = event.currentTarget.getBoundingClientRect();
-        const pct = (event.clientX - rect.left) / rect.width;
-        player.seekTo(player.getDuration() * pct, true);
+            if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+                try {
+                    navigator.mediaSession.setPositionState({
+                        duration: tot,
+                        playbackRate: 1,
+                        position: cur
+                    });
+                } catch(e) {}
+            }
+        }
     }
 
     function formatTime(secs) {
@@ -567,6 +785,312 @@
             document.getElementById('track-artist').innerText = data.author;
             document.getElementById('track-art').src = `https://img.youtube.com/vi/${data.video_id}/hqdefault.jpg`;
         }
+    }
+
+    /* --- ANALOG DUAL VU METER ENGINE --- */
+    function startVuMeter() {
+        if (vuAnimationTimer) cancelAnimationFrame(vuAnimationTimer);
+        const needleL = document.getElementById('vu-needle-left');
+        const needleR = document.getElementById('vu-needle-right');
+        const peakL = document.getElementById('vu-peak-left');
+        const peakR = document.getElementById('vu-peak-right');
+
+        let leftLevel = 0, rightLevel = 0;
+
+        function renderFrame() {
+            if (!isPlaying) {
+                needleL.style.width = '0%'; needleR.style.width = '0%';
+                peakL.classList.remove('lit'); peakR.classList.remove('lit');
+                return;
+            }
+
+            // Pseudo-random acoustic frequency envelope simulation
+            const targetL = Math.random() * 80 + (Math.random() > 0.85 ? 18 : 0);
+            const targetR = Math.random() * 75 + (Math.random() > 0.85 ? 20 : 0);
+
+            leftLevel += (targetL - leftLevel) * 0.35;
+            rightLevel += (targetR - rightLevel) * 0.35;
+
+            needleL.style.width = `${Math.min(100, leftLevel)}%`;
+            needleR.style.width = `${Math.min(100, rightLevel)}%`;
+
+            peakL.classList.toggle('lit', leftLevel > 88);
+            peakR.classList.toggle('lit', rightLevel > 88);
+
+            vuAnimationTimer = requestAnimationFrame(renderFrame);
+        }
+        renderFrame();
+    }
+
+    function stopVuMeter() {
+        if (vuAnimationTimer) cancelAnimationFrame(vuAnimationTimer);
+        document.getElementById('vu-needle-left').style.width = '0%';
+        document.getElementById('vu-needle-right').style.width = '0%';
+        document.getElementById('vu-peak-left').classList.remove('lit');
+        document.getElementById('vu-peak-right').classList.remove('lit');
+    }
+
+    /* --- SLEEP TIMER SYSTEM --- */
+    function openSleepTimerModal() {
+        document.getElementById('sleep-timer-modal').classList.add('open');
+    }
+    function closeSleepTimerModal() {
+        document.getElementById('sleep-timer-modal').classList.remove('open');
+    }
+
+    function setSleepTimer(minutes) {
+        clearSleepTimer();
+        closeSleepTimerModal();
+
+        if (minutes === 'end_of_track') {
+            sleepOnEndOfTrack = true;
+            document.getElementById('spec-timer').innerText = "TIMER: END OF TRACK";
+            document.getElementById('header-timer-btn').classList.add('active');
+            return;
+        }
+
+        const durationMs = minutes * 60 * 1000;
+        sleepTimerTargetMs = Date.now() + durationMs;
+        document.getElementById('header-timer-btn').classList.add('active');
+
+        sleepTimerInterval = setInterval(() => {
+            const remainingSecs = Math.max(0, Math.floor((sleepTimerTargetMs - Date.now()) / 1000));
+            if (remainingSecs <= 0) {
+                clearSleepTimer();
+                if (isPlaying) togglePlay();
+            } else {
+                const m = Math.floor(remainingSecs / 60);
+                const s = (remainingSecs % 60).toString().padStart(2, '0');
+                document.getElementById('spec-timer').innerText = `TIMER: ${m}:${s}`;
+            }
+        }, 1000);
+    }
+
+    function clearSleepTimer() {
+        if (sleepTimerInterval) clearInterval(sleepTimerInterval);
+        sleepTimerInterval = null;
+        sleepTimerTargetMs = 0;
+        sleepOnEndOfTrack = false;
+        document.getElementById('spec-timer').innerText = "TIMER: OFF";
+        document.getElementById('header-timer-btn').classList.remove('active');
+        closeSleepTimerModal();
+    }
+
+    /* --- OPEN LYRICS ENGINE (LRCLIB API) --- */
+    async function openLyricsDrawer() {
+        const activeTrack = currentQueue[currentQueueIndex];
+        if (!activeTrack) return alert("Play a song first to view lyrics.");
+
+        document.getElementById('lyrics-track-title').innerText = activeTrack.title;
+        document.getElementById('lyrics-track-artist').innerText = activeTrack.artist;
+        const target = document.getElementById('lyrics-content-target');
+        target.innerText = "Fetching lyrics from open database...";
+        document.getElementById('lyrics-modal').classList.add('open');
+
+        // Sanitize track title (remove "Official Video", "(Lyrics)", "feat", etc.)
+        const cleanTitle = activeTrack.title
+            .replace(/\(.*?\)|\[.*?\]/g, '')
+            .replace(/official\s*(music)?\s*video/gi, '')
+            .replace(/lyrics|audio|hd|4k/gi, '')
+            .trim();
+
+        const cleanArtist = activeTrack.artist
+            .replace(/\(.*?\)|\[.*?\]/g, '')
+            .replace(/vevo|topic|records/gi, '')
+            .trim();
+
+        try {
+            const url = `https://lrclib.net/api/get?track_name=${encodeURIComponent(cleanTitle)}&artist_name=${encodeURIComponent(cleanArtist)}`;
+            const res = await fetch(url);
+            
+            if (res.ok) {
+                const data = await res.json();
+                if (data.plainLyrics) {
+                    target.innerText = data.plainLyrics;
+                    return;
+                } else if (data.syncedLyrics) {
+                    target.innerText = data.syncedLyrics.replace(/\[.*?\]\s?/g, '');
+                    return;
+                }
+            }
+
+            // Fallback: search query
+            const searchRes = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(cleanTitle + " " + cleanArtist)}`);
+            const searchData = await searchRes.json();
+            if (searchData && searchData.length > 0 && (searchData[0].plainLyrics || searchData[0].syncedLyrics)) {
+                target.innerText = searchData[0].plainLyrics || searchData[0].syncedLyrics.replace(/\[.*?\]\s?/g, '');
+            } else {
+                target.innerText = "No lyrics found for this track.";
+            }
+        } catch (e) {
+            target.innerText = "Could not connect to lyrics server.";
+        }
+    }
+
+    function closeLyricsDrawer() {
+        document.getElementById('lyrics-modal').classList.remove('open');
+    }
+
+    /* --- JSONBIN CLOUD INTEGRATION & AUTO-SYNC --- */
+    function openCloudModal() {
+        document.getElementById('inp-cloud-key').value = cloudConfig.apiKey || '';
+        document.getElementById('inp-cloud-bin').value = cloudConfig.binId || '';
+        document.getElementById('cloud-modal').classList.add('open');
+    }
+    function closeCloudModal() {
+        document.getElementById('cloud-modal').classList.remove('open');
+    }
+
+    function evaluateCloudVisualState() {
+        const telemetry = document.getElementById('cloud-telemetry');
+        if (cloudConfig.apiKey && cloudConfig.binId) {
+            telemetry.style.display = 'block';
+            document.getElementById('txt-cloud-bin').innerText = cloudConfig.binId;
+        } else {
+            telemetry.style.display = 'none';
+        }
+    }
+
+    async function initializeCloudConnection() {
+        const key = document.getElementById('inp-cloud-key').value.trim();
+        const manualBin = document.getElementById('inp-cloud-bin').value.trim();
+        if (!key) return alert("API Key is required.");
+
+        const btn = document.getElementById('btn-cloud-link');
+        btn.innerText = "LINKING...";
+
+        try {
+            let binId = manualBin;
+            if (!binId) {
+                const res = await fetch('https://api.jsonbin.io/v3/b', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': key, 'X-Bin-Private': 'true', 'X-Bin-Name': 'Sound_Library_Database' },
+                    body: JSON.stringify({ customPlaylists, likedSongs, playHistory })
+                });
+                if (!res.ok) throw new Error("Could not create container");
+                const payload = await res.json();
+                binId = payload.metadata.id;
+            }
+
+            cloudConfig = { apiKey: key, binId: binId };
+            localStorage.setItem('sound_cloud_config', JSON.stringify(cloudConfig));
+            evaluateCloudVisualState();
+            btn.innerText = "CONNECTED";
+            setTimeout(() => { btn.innerText = "Link / Create"; closeCloudModal(); }, 1200);
+        } catch (e) {
+            alert("Cloud handshake failed. Check your API key.");
+            btn.innerText = "RETRY";
+        }
+    }
+
+    async function pullFromCloud() {
+        if (!cloudConfig.apiKey || !cloudConfig.binId) return alert("Please configure API Key and Bin ID first.");
+        try {
+            const res = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}/latest`, {
+                headers: { 'X-Master-Key': cloudConfig.apiKey }
+            });
+            if (!res.ok) throw new Error("Sync download failed");
+            const data = await res.json();
+            const record = data.record;
+
+            if (record.customPlaylists) {
+                customPlaylists = record.customPlaylists;
+                localStorage.setItem('sound_custom_playlists', JSON.stringify(customPlaylists));
+            }
+            if (record.likedSongs) {
+                likedSongs = record.likedSongs;
+                localStorage.setItem('sound_liked_tracks', JSON.stringify(likedSongs));
+            }
+            if (record.playHistory) {
+                playHistory = record.playHistory;
+                localStorage.setItem('sound_play_history', JSON.stringify(playHistory));
+            }
+            alert("Cloud database state restored successfully.");
+            closeCloudModal();
+            location.reload();
+        } catch (e) {
+            alert("Could not restore data from cloud.");
+        }
+    }
+
+    async function pushToCloud(isManual = false) {
+        if (!cloudConfig.apiKey || !cloudConfig.binId) return;
+        try {
+            await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': cloudConfig.apiKey },
+                body: JSON.stringify({ customPlaylists, likedSongs, playHistory })
+            });
+            if (isManual) alert("Library synced to cloud successfully!");
+        } catch (e) {
+            console.error("Auto cloud push failed", e);
+        }
+    }
+
+    function scheduleCloudSync() {
+        if (!cloudConfig.apiKey || !cloudConfig.binId) return;
+        if (cloudSyncDebounceTimer) clearTimeout(cloudSyncDebounceTimer);
+        cloudSyncDebounceTimer = setTimeout(() => { pushToCloud(false); }, 2000);
+    }
+
+    /* --- JSON BACKUP EXPORT & IMPORT --- */
+    function openBackupModal() {
+        document.getElementById('backup-modal').classList.add('open');
+    }
+    function closeBackupModal() {
+        document.getElementById('backup-modal').classList.remove('open');
+    }
+
+    function downloadLibraryJSON() {
+        const payload = {
+            exportDate: new Date().toISOString(),
+            customPlaylists,
+            likedSongs,
+            playHistory
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sound-library-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        closeBackupModal();
+    }
+
+    function triggerFileInput() {
+        document.getElementById('inp-json-file').click();
+    }
+
+    function handleJSONFileImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.customPlaylists) {
+                    customPlaylists = data.customPlaylists;
+                    localStorage.setItem('sound_custom_playlists', JSON.stringify(customPlaylists));
+                }
+                if (data.likedSongs) {
+                    likedSongs = data.likedSongs;
+                    localStorage.setItem('sound_liked_tracks', JSON.stringify(likedSongs));
+                }
+                if (data.playHistory) {
+                    playHistory = data.playHistory;
+                    localStorage.setItem('sound_play_history', JSON.stringify(playHistory));
+                }
+                alert("Backup restored successfully!");
+                scheduleCloudSync();
+                closeBackupModal();
+                location.reload();
+            } catch (err) {
+                alert("Invalid JSON backup file.");
+            }
+        };
+        reader.readAsText(file);
     }
 
     /* --- DRAWER & NAVIGATION --- */
@@ -598,7 +1122,7 @@
     function renderSearchTab(root) {
         root.innerHTML = `
             <div class="search-box-group">
-                <input type="text" id="drawer-search-input" class="native-input" placeholder="Search song title, artist, or YouTube URL...">
+                <input type="text" id="drawer-search-input" class="native-input" placeholder="Search track, artist, album, or paste YouTube link...">
                 <button class="btn-panel" id="drawer-search-btn" onclick="executeSearch()">SEARCH</button>
             </div>
             <div id="search-results-target">
@@ -651,7 +1175,7 @@
         root.innerHTML = '';
 
         if (currentQueue.length === 0) {
-            root.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--ink-faded); font-size: 11px; font-style: italic;">Active Queue Empty. Search or import songs to populate.</div>`;
+            root.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--ink-faded); font-size: 11px; font-style: italic;">Active Queue Empty. Search or play songs to populate.</div>`;
             return;
         }
 
@@ -687,7 +1211,10 @@
         actionRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;";
         actionRow.innerHTML = `
             <span style="font-size: 10px; font-weight: bold; opacity: 0.5; text-transform: uppercase;">Playlists & Starred (${customPlaylists.length})</span>
-            <button class="btn-panel" style="padding: 6px 12px; font-size: 10px;" onclick="openCreatePlaylistModal()">+ New Playlist</button>
+            <div style="display: flex; gap: 6px;">
+                <button class="btn-panel outline" style="padding: 6px 10px; font-size: 9px;" onclick="openBackupModal()">Backup</button>
+                <button class="btn-panel" style="padding: 6px 12px; font-size: 10px;" onclick="openCreatePlaylistModal()">+ New</button>
+            </div>
         `;
         root.appendChild(actionRow);
 
@@ -850,7 +1377,7 @@
         closeDrawer();
     }
 
-    /* --- PLAYLIST REORDERING & DELETION --- */
+    /* --- PLAYLIST REORDERING & PERSISTENCE --- */
     function movePlaylistItem(plId, index, direction) {
         const pl = customPlaylists.find(p => p.id === plId);
         if (!pl) return;
@@ -986,6 +1513,7 @@
 
     function savePlaylists() {
         localStorage.setItem('sound_custom_playlists', JSON.stringify(customPlaylists));
+        scheduleCloudSync();
     }
 
     /* --- HISTORY TAB --- */
@@ -1007,7 +1535,7 @@
         });
     }
 
-    /* --- ROBUST TRACK ROW COMPONENT BUILDER --- */
+    /* --- TRACK ROW COMPONENT BUILDER --- */
     function createTrackRowElement(track, index, playCallback, isActive = false, inQueueContext = false) {
         const div = document.createElement('div');
         div.className = 'track-row-item';
@@ -1044,7 +1572,7 @@
         return div;
     }
 
-    /* --- CONTEXT MENU ACTIONS --- */
+    /* --- CONTEXT MENU --- */
     function openContextMenu(track, index, inQueueContext) {
         activeModalTrack = track;
         activeModalIndex = index;
@@ -1119,6 +1647,7 @@
         }
         localStorage.setItem('sound_liked_tracks', JSON.stringify(likedSongs));
         updateHeaderLikeStatus();
+        scheduleCloudSync();
     }
 
     function updateHeaderLikeStatus() {
@@ -1136,6 +1665,7 @@
         playHistory.unshift(track);
         if (playHistory.length > 50) playHistory.pop();
         localStorage.setItem('sound_play_history', JSON.stringify(playHistory));
+        scheduleCloudSync();
     }
 
     /* --- EXPLICIT WINDOW ATTACHMENTS --- */
@@ -1150,7 +1680,6 @@
     window.toggleRepeat = toggleRepeat;
     window.toggleLikeCurrent = toggleLikeCurrent;
     window.toggleTheme = toggleTheme;
-    window.seekTrack = seekTrack;
     window.clearQueue = clearQueue;
     window.openCreatePlaylistModal = openCreatePlaylistModal;
     window.openEditPlaylistModal = openEditPlaylistModal;
@@ -1168,6 +1697,22 @@
     window.playLikedCollection = playLikedCollection;
     window.deletePlaylist = deletePlaylist;
     window.renderLibrary = renderLibrary;
+    window.openSleepTimerModal = openSleepTimerModal;
+    window.closeSleepTimerModal = closeSleepTimerModal;
+    window.setSleepTimer = setSleepTimer;
+    window.clearSleepTimer = clearSleepTimer;
+    window.openLyricsDrawer = openLyricsDrawer;
+    window.closeLyricsDrawer = closeLyricsDrawer;
+    window.openCloudModal = openCloudModal;
+    window.closeCloudModal = closeCloudModal;
+    window.initializeCloudConnection = initializeCloudConnection;
+    window.pullFromCloud = pullFromCloud;
+    window.pushToCloud = pushToCloud;
+    window.openBackupModal = openBackupModal;
+    window.closeBackupModal = closeBackupModal;
+    window.downloadLibraryJSON = downloadLibraryJSON;
+    window.triggerFileInput = triggerFileInput;
+    window.handleJSONFileImport = handleJSONFileImport;
 </script>
 </body>
 </html>
