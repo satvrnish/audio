@@ -1,6 +1,9 @@
+let cachedSpotifyToken = null;
+let tokenExpiresAt = 0;
+
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+    res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate');
 
     const query = req.query.q;
     const searchType = req.query.type || 'all';
@@ -10,7 +13,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 1. SPOTIFY LINK DETECTOR (Paste direct URL)
+        // 1. DIRECT SPOTIFY LINK DETECTOR (Playlist, Album, or User Profile)
         if (query.includes('spotify.com/playlist/') || query.includes('spotify.com/album/')) {
             const spotifyTracks = await parseSpotifyLink(query);
             return res.status(200).json({
@@ -35,16 +38,27 @@ export default async function handler(req, res) {
             });
         }
 
-        // 3. SPOTIFY PLAYLIST SEARCH (Discover & Curate)
+        // 3. SPOTIFY PLAYLIST SEARCH (Searches all user-created & public playlists)
         if (searchType === 'spotify_playlists') {
-            const playlists = await searchSpotifyPlaylists(query);
+            const token = await getSpotifyAccessToken(req);
+            if (!token) {
+                return res.status(200).json({
+                    type: 'spotify_playlist_search_results',
+                    results: [],
+                    warning: "Spotify Client Keys missing. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in Vercel."
+                });
+            }
+
+            const rawPlaylists = await searchSpotifyPlaylists(query, token);
+            const rankedPlaylists = rankPlaylistsByRelevance(rawPlaylists, query);
+
             return res.status(200).json({
                 type: 'spotify_playlist_search_results',
-                results: playlists
+                results: rankedPlaylists
             });
         }
 
-        // 4. GENERAL YOUTUBE TRACK SEARCH
+        // 4. GENERAL YOUTUBE SONG SEARCH
         const searchResults = await searchYouTube(query);
         return res.status(200).json({
             type: 'search_results',
@@ -57,41 +71,105 @@ export default async function handler(req, res) {
     }
 }
 
-// --- HELPER 1: Search Spotify Public Playlists Without Quota Keys ---
-async function searchSpotifyPlaylists(query) {
+// --- SPOTIFY OAUTH TOKEN MANAGER (Cached in memory) ---
+async function getSpotifyAccessToken(req) {
+    const clientId = process.env.SPOTIFY_CLIENT_ID || req.query.client_id;
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET || req.query.client_secret;
+
+    if (!clientId || !clientSecret) return null;
+
+    const now = Date.now();
+    if (cachedSpotifyToken && now < tokenExpiresAt) {
+        return cachedSpotifyToken;
+    }
+
+    const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${authHeader}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    cachedSpotifyToken = data.access_token;
+    tokenExpiresAt = now + ((data.expires_in - 120) * 1000); // 2-min buffer
+    return cachedSpotifyToken;
+}
+
+// --- SEARCH PUBLIC & USER PLAYLISTS ON SPOTIFY ---
+async function searchSpotifyPlaylists(query, token) {
     try {
-        // Fetch Spotify's public client token
-        const tokenRes = await fetch('https://open.spotify.com/get_access_token', {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-        });
-        const tokenData = await tokenRes.json();
-        const token = tokenData.accessToken;
-
-        if (!token) return [];
-
-        const searchUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=playlist&limit=15`;
-        const res = await fetch(searchUrl, {
+        const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=playlist&limit=30`;
+        const res = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        if (!res.ok) return [];
+
         const data = await res.json();
         const items = data.playlists?.items || [];
 
         return items.filter(p => p && p.id).map(p => ({
             id: p.id,
             name: p.name || "Untitled Playlist",
-            description: p.description || "",
-            owner: p.owner?.display_name || "Spotify",
+            description: (p.description || "").replace(/<[^>]*>?/gm, ''), // strip HTML
+            owner: p.owner?.display_name || "Spotify User",
+            ownerId: p.owner?.id || "",
             trackCount: p.tracks?.total || 0,
             thumbnail: p.images?.[0]?.url || "",
             url: p.external_urls?.spotify || `https://open.spotify.com/playlist/${p.id}`
         }));
     } catch (err) {
-        console.error("Spotify Playlist Search Error:", err);
+        console.error("Spotify Search Error:", err);
         return [];
     }
 }
 
-// --- HELPER 2: Extract Spotify Playlist Tracklist ---
+// --- CUSTOM RELEVANCE & ORDERING ALGORITHM ---
+function rankPlaylistsByRelevance(playlists, query) {
+    const cleanQuery = query.trim().toLowerCase();
+    const queryWords = cleanQuery.split(/\s+/).filter(Boolean);
+
+    return playlists.map((pl, originalIndex) => {
+        const cleanName = pl.name.trim().toLowerCase();
+        const cleanOwner = pl.owner.trim().toLowerCase();
+        let score = 0;
+
+        // 1. Exact Full Match
+        if (cleanName === cleanQuery) {
+            score += 1000;
+        }
+        // 2. Starts With Full Query
+        else if (cleanName.startsWith(cleanQuery)) {
+            score += 500;
+        }
+        // 3. User / Creator Name Match
+        if (cleanOwner === cleanQuery || cleanOwner.includes(cleanQuery)) {
+            score += 300;
+        }
+        // 4. All Query Words Contained in Title
+        const containsAllWords = queryWords.every(w => cleanName.includes(w));
+        if (containsAllWords) {
+            score += 150;
+        }
+        // 5. Individual Word Matches
+        queryWords.forEach(w => {
+            if (cleanName.includes(w)) score += 20;
+        });
+
+        // 6. Natural Spotify Order fallback weighting
+        score += (30 - originalIndex);
+
+        return { ...pl, relevanceScore: score };
+    }).sort((a, b) => b.relevanceScore - a.relevanceScore);
+}
+
+// --- SCRAPE SPOTIFY TRACKLIST FROM EMBED ---
 async function parseSpotifyLink(url) {
     const cleanUrl = url.split('?')[0];
     const embedUrl = cleanUrl.replace('spotify.com/', 'spotify.com/embed/');
@@ -115,7 +193,7 @@ async function parseSpotifyLink(url) {
     }));
 }
 
-// --- HELPER 3: Robust YouTube Video Scraper ---
+// --- YOUTUBE SCRAPER ---
 async function searchYouTube(query) {
     try {
         const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
