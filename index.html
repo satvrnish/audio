@@ -154,20 +154,7 @@
 
         .drawer-content { flex-grow: 1; overflow-y: auto; padding: 20px; -webkit-overflow-scrolling: touch; }
 
-        /* --- SEARCH FILTER PILLS --- */
-        .search-mode-selector {
-            display: flex; gap: 8px; margin-bottom: 12px;
-        }
-        .search-pill {
-            padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border);
-            font-size: 10px; font-family: var(--font-mono); text-transform: uppercase;
-            letter-spacing: 0.5px; background: transparent; color: var(--ink-faded);
-            cursor: pointer; font-weight: bold;
-        }
-        .search-pill.active {
-            background: var(--ink-black); color: var(--bg-paper); border-color: var(--ink-black);
-        }
-
+        /* --- INPUT & BUTTON MODULES --- */
         .search-box-group { display: flex; gap: 8px; margin-bottom: 20px; }
         .native-input {
             flex-grow: 1; padding: 12px; background: var(--item-active); border: 1px solid var(--border);
@@ -187,7 +174,7 @@
         }
         .track-row-item:active { background: var(--item-active); }
         .track-info-left { display: flex; align-items: center; gap: 12px; flex-grow: 1; overflow: hidden; }
-        .track-thumb { width: 40px; height: 40px; border-radius: 3px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); }
+        .track-thumb { width: 44px; height: 44px; border-radius: 3px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); }
         .track-text-group { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
         .track-row-title { font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .track-row-artist { font-size: 10px; opacity: 0.5; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -262,7 +249,7 @@
         </div>
 
         <div class="track-title" id="track-title">Sound Engine</div>
-        <div class="track-artist" id="track-artist">Search or Paste Link</div>
+        <div class="track-artist" id="track-artist">Search any Track, Artist or Album</div>
 
         <div class="scrubber-container">
             <div class="progress-track" onclick="seekTrack(event)">
@@ -315,7 +302,7 @@
         </div>
 
         <div class="drawer-tabs">
-            <button class="drawer-tab-btn" id="dtab-search" onclick="switchDrawerTab('search')">Search & Import</button>
+            <button class="drawer-tab-btn" id="dtab-search" onclick="switchDrawerTab('search')">Search & Discover</button>
             <button class="drawer-tab-btn" id="dtab-queue" onclick="switchDrawerTab('queue')">Active Queue</button>
             <button class="drawer-tab-btn" id="dtab-library" onclick="switchDrawerTab('library')">Playlists & Saved</button>
             <button class="drawer-tab-btn" id="dtab-history" onclick="switchDrawerTab('history')">Play History</button>
@@ -359,11 +346,11 @@
             <div style="font-family: var(--font-serif); font-size: 20px; margin-bottom: 15px;" id="pl-form-title">New Playlist</div>
             <div style="margin-bottom: 12px;">
                 <label style="font-size: 10px; text-transform: uppercase; opacity: 0.5; font-weight: bold;">Playlist Title *</label>
-                <input type="text" id="inp-pl-name" class="native-input" placeholder="e.g. Late Night Runs" style="margin-top: 4px;">
+                <input type="text" id="inp-pl-name" class="native-input" placeholder="e.g. Late Night Drives" style="margin-top: 4px;">
             </div>
             <div style="margin-bottom: 20px;">
                 <label style="font-size: 10px; text-transform: uppercase; opacity: 0.5; font-weight: bold;">Description (Optional)</label>
-                <input type="text" id="inp-pl-desc" class="native-input" placeholder="e.g. Atmospheric beats and synthwave" style="margin-top: 4px;">
+                <input type="text" id="inp-pl-desc" class="native-input" placeholder="e.g. Synthwave & atmospheric tracks" style="margin-top: 4px;">
             </div>
             <button class="btn-panel" style="width: 100%;" onclick="submitPlaylistForm()">Save Playlist</button>
         </div>
@@ -373,7 +360,7 @@
     <div id="yt-player-hidden"></div>
 
 <script>
-    /* --- SAFE LOCALSTORAGE RETRIEVAL --- */
+    /* --- STORAGE HELPERS --- */
     function safeGet(key, fallback = []) {
         try {
             const raw = localStorage.getItem(key);
@@ -396,8 +383,6 @@
     let activeModalTrack = null;
     let activeModalIndex = -1;
 
-    let searchMode = 'youtube'; // 'youtube' or 'spotify_playlists'
-
     let likedSongs = safeGet('sound_liked_tracks', []);
     let playHistory = safeGet('sound_play_history', []);
     let customPlaylists = safeGet('sound_custom_playlists', []);
@@ -416,7 +401,7 @@
         localStorage.setItem('sound_theme_dark', document.body.classList.contains('dark-mode'));
     }
 
-    /* --- YOUTUBE AUDIO ENGINE --- */
+    /* --- YOUTUBE ENGINE --- */
     var tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
@@ -474,13 +459,13 @@
         }
     }
 
-    async function resolveAndPlaySpotifyTrack(index) {
+    async function resolveAndPlayTrack(index) {
         if (index < 0 || index >= currentQueue.length) return;
         currentQueueIndex = index;
         const item = currentQueue[index];
 
         document.getElementById('track-title').innerText = item.title;
-        document.getElementById('track-artist').innerText = item.artist + " (Resolving...)";
+        document.getElementById('track-artist').innerText = item.artist + " (Matching Audio...)";
         const specSource = document.getElementById('spec-source');
         if (specSource) specSource.innerText = "SEARCHING";
 
@@ -490,10 +475,10 @@
             if (data.results && data.results.length > 0) {
                 const matched = data.results[0];
                 item.id = matched.id;
-                item.thumbnail = matched.thumbnail;
+                if (!item.thumbnail) item.thumbnail = matched.thumbnail;
                 playYouTubeItem(index);
             } else {
-                alert("Could not match stream on YouTube.");
+                alert("Could not match stream for this track.");
             }
         } catch (e) { console.error(e); }
     }
@@ -531,7 +516,7 @@
         const item = currentQueue[index];
         if (!item) return;
         if (item.id) playYouTubeItem(index);
-        else resolveAndPlaySpotifyTrack(index);
+        else resolveAndPlayTrack(index);
         if (document.getElementById('drawer-overlay').classList.contains('open')) {
             renderActiveQueue();
         }
@@ -577,14 +562,14 @@
         if (!player || !player.getVideoData) return;
         const data = player.getVideoData();
         const activeTrack = currentQueue[currentQueueIndex];
-        if (data && data.title && activeTrack && !activeTrack.artist.includes("Spotify")) {
+        if (data && data.title && (!activeTrack || !activeTrack.thumbnail)) {
             document.getElementById('track-title').innerText = data.title;
             document.getElementById('track-artist').innerText = data.author;
             document.getElementById('track-art').src = `https://img.youtube.com/vi/${data.video_id}/hqdefault.jpg`;
         }
     }
 
-    /* --- DRAWER & NAVIGATION SYSTEM --- */
+    /* --- DRAWER & NAVIGATION --- */
     function openDrawerTab(tab) {
         document.getElementById('drawer-overlay').classList.add('open');
         switchDrawerTab(tab);
@@ -609,31 +594,21 @@
         else if (tab === 'history') renderHistory(root);
     }
 
-    /* --- SEARCH TAB (YOUTUBE & SPOTIFY PLAYLIST DISCOVERY) --- */
+    /* --- SEARCH TAB --- */
     function renderSearchTab(root) {
         root.innerHTML = `
-            <div class="search-mode-selector">
-                <button class="search-pill ${searchMode === 'youtube' ? 'active' : ''}" id="pill-yt" onclick="setSearchMode('youtube')">🎵 Song / YouTube</button>
-                <button class="search-pill ${searchMode === 'spotify_playlists' ? 'active' : ''}" id="pill-sp" onclick="setSearchMode('spotify_playlists')">📁 Spotify Playlists</button>
-            </div>
             <div class="search-box-group">
-                <input type="text" id="drawer-search-input" class="native-input" placeholder="${searchMode === 'youtube' ? 'Song title, YT URL, or Spotify link...' : 'Search Spotify playlists (e.g. your username, Late Night)...'}">
+                <input type="text" id="drawer-search-input" class="native-input" placeholder="Search song title, artist, or YouTube URL...">
                 <button class="btn-panel" id="drawer-search-btn" onclick="executeSearch()">SEARCH</button>
             </div>
             <div id="search-results-target">
                 <div style="text-align: center; padding: 40px 20px; color: var(--ink-faded); font-size: 11px; font-style: italic;">
-                    ${searchMode === 'youtube' ? 'Search YouTube audio streams or paste any Spotify playlist link.' : 'Discover public and user-made Spotify playlists to curate.'}
+                    Search any track across the open music catalog with high-resolution artwork.
                 </div>
             </div>
         `;
         const inp = document.getElementById('drawer-search-input');
         inp.addEventListener('keypress', (e) => { if (e.key === 'Enter') executeSearch(); });
-    }
-
-    function setSearchMode(mode) {
-        searchMode = mode;
-        const root = document.getElementById('drawer-content-root');
-        renderSearchTab(root);
     }
 
     async function executeSearch() {
@@ -646,132 +621,27 @@
         if (btn) btn.innerText = "FETCHING...";
 
         try {
-            const endpoint = `/api/search?q=${encodeURIComponent(query)}&type=${searchMode}`;
+            const endpoint = `/api/search?q=${encodeURIComponent(query)}`;
             const res = await fetch(endpoint);
             const data = await res.json();
             const target = document.getElementById('search-results-target');
             target.innerHTML = '';
 
-            if (data.warning) {
-                target.innerHTML = `
-                    <div style="padding: 15px; border: 1px dashed var(--accent-gold); border-radius: 6px; font-size: 11px; margin-bottom: 15px; line-height: 1.4;">
-                        <b>SPOTIFY KEYS NEEDED:</b><br>${data.warning}
-                    </div>
-                `;
-            }
-
-            // 1. Direct Spotify Playlist Link Result
-            if (data.type === 'spotify_playlist') {
-                currentQueue = data.tracks;
-                target.innerHTML = `<div style="font-size: 10px; font-weight: bold; opacity: 0.5; margin-bottom: 15px; text-transform: uppercase;">Imported ${data.count} Tracks from Link</div>`;
-                data.tracks.forEach((track, i) => {
-                    target.appendChild(createTrackRowElement(track, i, () => playItemInQueue(i), true));
-                });
-            } 
-            // 2. Spotify Playlist Search Discovery Results (Ranked)
-            else if (data.type === 'spotify_playlist_search_results' && data.results.length > 0) {
-                target.innerHTML = `<div style="font-size: 10px; font-weight: bold; opacity: 0.5; margin-bottom: 15px; text-transform: uppercase;">Found ${data.results.length} Spotify Playlists</div>`;
-                data.results.forEach(pl => {
-                    const card = document.createElement('div');
-                    card.className = 'playlist-card';
-                    card.onclick = () => previewSpotifyPlaylistFromSearch(pl);
-                    card.innerHTML = `
-                        <div style="display: flex; gap: 12px; align-items: center;">
-                            ${pl.thumbnail ? `<img src="${pl.thumbnail}" style="width: 50px; height: 50px; border-radius: 4px; object-fit: cover; border: 1px solid var(--border);">` : ''}
-                            <div style="overflow: hidden;">
-                                <div class="pl-card-title">${pl.name}</div>
-                                <div class="pl-card-desc" style="margin-bottom: 4px;">${pl.description || 'Curated on Spotify'}</div>
-                                <div class="pl-card-meta">${pl.trackCount} Tracks • By ${pl.owner}</div>
-                            </div>
-                        </div>
-                    `;
-                    target.appendChild(card);
-                });
-            } 
-            // 3. YouTube Song Results
-            else if (data.results && data.results.length > 0) {
-                target.innerHTML = `<div style="font-size: 10px; font-weight: bold; opacity: 0.5; margin-bottom: 15px; text-transform: uppercase;">Search Results (${data.results.length})</div>`;
+            if (data.results && data.results.length > 0) {
+                target.innerHTML = `<div style="font-size: 10px; font-weight: bold; opacity: 0.5; margin-bottom: 15px; text-transform: uppercase;">Tracks Found (${data.results.length})</div>`;
                 data.results.forEach((track, i) => {
                     target.appendChild(createTrackRowElement(track, i, () => {
                         currentQueue = [track];
                         playItemInQueue(0);
-                    }, false));
+                    }));
                 });
             } else {
-                target.innerHTML = `<div style="text-align: center; padding: 30px; font-size: 12px; opacity: 0.5;">No results found. Try a different query.</div>`;
+                target.innerHTML = `<div style="text-align: center; padding: 30px; font-size: 12px; opacity: 0.5;">No results found. Try different keywords.</div>`;
             }
         } catch (e) {
             alert("Search routing failed. Verify API endpoint.");
         } finally {
             if (btn) btn.innerText = "SEARCH";
-        }
-    }
-
-    /* --- SPOTIFY PLAYLIST PREVIEW & CURATION VIEW --- */
-    async function previewSpotifyPlaylistFromSearch(pl) {
-        const root = document.getElementById('drawer-content-root');
-        root.innerHTML = `<div style="text-align: center; padding: 50px; font-size: 12px; opacity: 0.5;">Unpacking Spotify Playlist Tracks...</div>`;
-
-        try {
-            const res = await fetch(`/api/search?q=${encodeURIComponent(pl.url)}`);
-            const data = await res.json();
-            
-            if (!data.tracks || data.tracks.length === 0) {
-                alert("Could not load tracks for this playlist.");
-                renderSearchTab(root);
-                return;
-            }
-
-            root.innerHTML = '';
-
-            const header = document.createElement('div');
-            header.style.cssText = "border-bottom: 1px dashed var(--border); padding-bottom: 15px; margin-bottom: 20px;";
-            header.innerHTML = `
-                <button onclick="renderSearchTab(document.getElementById('drawer-content-root'))" style="background: none; border: none; font-size: 11px; font-family: var(--font-mono); font-weight: bold; cursor: pointer; color: var(--ink-faded); text-transform: uppercase; margin-bottom: 10px;">
-                    ← Back to Search Results
-                </button>
-                <div style="font-family: var(--font-serif); font-size: 22px; margin-bottom: 4px;">${pl.name}</div>
-                <div style="font-size: 11px; opacity: 0.6; margin-bottom: 15px;">${pl.description || 'Curated by ' + pl.owner}</div>
-                
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn-panel" style="padding: 8px 14px; font-size: 10px;" id="btn-import-pl">📥 Save as My Playlist</button>
-                    <button class="btn-panel outline" style="padding: 8px 14px; font-size: 10px;" id="btn-play-all-sp">▶ Play All</button>
-                </div>
-            `;
-            root.appendChild(header);
-
-            document.getElementById('btn-import-pl').onclick = () => {
-                const today = new Date();
-                const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                const newPl = {
-                    id: 'pl_' + Date.now(),
-                    name: pl.name,
-                    description: `Imported from Spotify (${pl.owner})`,
-                    createdDate: dateStr,
-                    tracks: data.tracks
-                };
-                customPlaylists.unshift(newPl);
-                savePlaylists();
-                alert(`Saved '${pl.name}' (${data.tracks.length} tracks) to your Library!`);
-            };
-
-            document.getElementById('btn-play-all-sp').onclick = () => {
-                currentQueue = [...data.tracks];
-                playItemInQueue(0);
-                closeDrawer();
-            };
-
-            data.tracks.forEach((track, idx) => {
-                const row = createTrackRowElement(track, idx, () => {
-                    currentQueue = [...data.tracks];
-                    playItemInQueue(idx);
-                }, true);
-                root.appendChild(row);
-            });
-
-        } catch (e) {
-            alert("Failed to load playlist tracklist.");
-            renderSearchTab(root);
         }
     }
 
@@ -795,7 +665,7 @@
 
         currentQueue.forEach((track, i) => {
             const isPlayingThis = (i === currentQueueIndex);
-            const row = createTrackRowElement(track, i, () => playItemInQueue(i), false, isPlayingThis, true);
+            const row = createTrackRowElement(track, i, () => playItemInQueue(i), isPlayingThis, true);
             root.appendChild(row);
         });
     }
@@ -834,7 +704,7 @@
         if (customPlaylists.length === 0) {
             const emptyHint = document.createElement('div');
             emptyHint.style.cssText = "text-align: center; padding: 30px 20px; color: var(--ink-faded); font-size: 11px; font-style: italic; border: 1px dashed var(--border); border-radius: 4px; margin-top: 10px;";
-            emptyHint.innerText = "No custom playlists created yet. Create one or search Spotify to import.";
+            emptyHint.innerText = "No custom playlists created yet. Create one to organize tracks.";
             root.appendChild(emptyHint);
             return;
         }
@@ -1137,8 +1007,8 @@
         });
     }
 
-    /* --- ROBUST TRACK ROW COMPONENT --- */
-    function createTrackRowElement(track, index, playCallback, isSpotify = false, isActive = false, inQueueContext = false) {
+    /* --- ROBUST TRACK ROW COMPONENT BUILDER --- */
+    function createTrackRowElement(track, index, playCallback, isActive = false, inQueueContext = false) {
         const div = document.createElement('div');
         div.className = 'track-row-item';
         if (isActive) div.style.background = 'var(--item-active)';
@@ -1233,7 +1103,7 @@
         alert("Track Query Copied to Clipboard.");
     }
 
-    /* --- STARRED & HISTORY REGISTRIES --- */
+    /* --- STARRED & HISTORY ENGINES --- */
     function toggleLikeCurrent() {
         if (currentQueueIndex >= 0 && currentQueue[currentQueueIndex]) {
             toggleLikeTrack(currentQueue[currentQueueIndex]);
@@ -1268,11 +1138,10 @@
         localStorage.setItem('sound_play_history', JSON.stringify(playHistory));
     }
 
-    /* --- GLOBAL WINDOW ATTACHMENTS --- */
+    /* --- EXPLICIT WINDOW ATTACHMENTS --- */
     window.openDrawerTab = openDrawerTab;
     window.closeDrawer = closeDrawer;
     window.switchDrawerTab = switchDrawerTab;
-    window.setSearchMode = setSearchMode;
     window.executeSearch = executeSearch;
     window.togglePlay = togglePlay;
     window.playNext = playNext;
