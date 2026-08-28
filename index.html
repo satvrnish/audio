@@ -173,12 +173,12 @@
             justify-content: space-between; align-items: center; cursor: pointer;
         }
         .track-row-item:active { background: var(--item-active); }
-        .track-info-left { display: flex; align-items: center; gap: 12px; max-width: 72%; }
+        .track-info-left { display: flex; align-items: center; gap: 12px; flex-grow: 1; overflow: hidden; }
         .track-thumb { width: 40px; height: 40px; border-radius: 3px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); }
         .track-text-group { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
         .track-row-title { font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .track-row-artist { font-size: 10px; opacity: 0.5; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .track-row-actions { display: flex; align-items: center; gap: 8px; }
+        .track-row-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-left: 10px; }
 
         /* --- PLAYLIST CARD --- */
         .playlist-card {
@@ -190,7 +190,6 @@
         .pl-card-desc { font-size: 11px; opacity: 0.6; line-height: 1.4; margin-bottom: 10px; }
         .pl-card-meta { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.5; font-weight: bold; }
 
-        /* REORDER CONTROLS */
         .reorder-btn {
             background: none; border: 1px solid var(--border); border-radius: 3px;
             color: var(--ink-black); font-size: 10px; padding: 4px 6px; cursor: pointer;
@@ -362,7 +361,18 @@
     <div id="yt-player-hidden"></div>
 
 <script>
-    /* --- SYSTEM STATE & LOCALSTORAGE REGISTRIES --- */
+    /* --- SAFE LOCALSTORAGE HELPER --- */
+    function safeGet(key, fallback = []) {
+        try {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : fallback;
+        } catch(e) {
+            console.warn("Storage reset for:", key);
+            return fallback;
+        }
+    }
+
+    /* --- SYSTEM STATE --- */
     let player = null;
     let isPlaying = false;
     let isShuffle = false;
@@ -374,9 +384,9 @@
     let activeModalTrack = null;
     let activeModalIndex = -1;
 
-    let likedSongs = JSON.parse(localStorage.getItem('sound_liked_tracks')) || [];
-    let playHistory = JSON.parse(localStorage.getItem('sound_play_history')) || [];
-    let customPlaylists = JSON.parse(localStorage.getItem('sound_custom_playlists')) || [];
+    let likedSongs = safeGet('sound_liked_tracks', []);
+    let playHistory = safeGet('sound_play_history', []);
+    let customPlaylists = safeGet('sound_custom_playlists', []);
 
     let editingPlaylistId = null;
     let viewingPlaylistId = null;
@@ -392,7 +402,7 @@
         localStorage.setItem('sound_theme_dark', document.body.classList.contains('dark-mode'));
     }
 
-    /* --- YOUTUBE PLAYER ENGINE --- */
+    /* --- YOUTUBE ENGINE --- */
     var tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
@@ -410,17 +420,18 @@
     function onPlayerStateChange(event) {
         const specSource = document.getElementById('spec-source');
         if (event.data == YT.PlayerState.BUFFERING) {
-            specSource.innerText = "BUFFERING";
+            if (specSource) specSource.innerText = "BUFFERING";
         } else if (event.data == YT.PlayerState.PLAYING) {
             isPlaying = true;
             document.getElementById('btn-play').innerText = "⏸";
-            specSource.innerText = "STREAMING";
+            if (specSource) specSource.innerText = "STREAMING";
+            clearInterval(progressTimer);
             progressTimer = setInterval(updateProgress, 500);
             syncTrackDetails();
         } else if (event.data == YT.PlayerState.PAUSED) {
             isPlaying = false;
             document.getElementById('btn-play').innerText = "▶";
-            specSource.innerText = "PAUSED";
+            if (specSource) specSource.innerText = "PAUSED";
             clearInterval(progressTimer);
         } else if (event.data == YT.PlayerState.ENDED) {
             if (repeatMode === 2) {
@@ -438,7 +449,7 @@
 
         document.getElementById('track-title').innerText = item.title;
         document.getElementById('track-artist').innerText = item.artist;
-        document.getElementById('track-art').src = item.thumbnail || `https://img.youtube.com/vi/${item.id}/hqdefault.jpg`;
+        document.getElementById('track-art').src = item.thumbnail || (item.id ? `https://img.youtube.com/vi/${item.id}/hqdefault.jpg` : '');
         
         updateHeaderLikeStatus();
         addToHistory(item);
@@ -456,7 +467,8 @@
 
         document.getElementById('track-title').innerText = item.title;
         document.getElementById('track-artist').innerText = item.artist + " (Resolving...)";
-        document.getElementById('spec-source').innerText = "SEARCHING";
+        const specSource = document.getElementById('spec-source');
+        if (specSource) specSource.innerText = "SEARCHING";
 
         try {
             const res = await fetch(`/api/search?q=${encodeURIComponent(item.searchQuery || item.title + " " + item.artist)}`);
@@ -558,7 +570,7 @@
         }
     }
 
-    /* --- DRAWER NAVIGATION --- */
+    /* --- DRAWER & NAVIGATION SYSTEM --- */
     function openDrawerTab(tab) {
         document.getElementById('drawer-overlay').classList.add('open');
         switchDrawerTab(tab);
@@ -570,7 +582,8 @@
 
     function switchDrawerTab(tab) {
         document.querySelectorAll('.drawer-tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`dtab-${tab}`).classList.add('active');
+        const tabBtn = document.getElementById(`dtab-${tab}`);
+        if (tabBtn) tabBtn.classList.add('active');
 
         const root = document.getElementById('drawer-content-root');
         root.innerHTML = '';
@@ -595,6 +608,8 @@
                 </div>
             </div>
         `;
+        const inp = document.getElementById('drawer-search-input');
+        inp.addEventListener('keypress', (e) => { if (e.key === 'Enter') executeSearch(); });
     }
 
     async function executeSearch() {
@@ -604,7 +619,7 @@
         if (!query) return;
 
         const btn = document.getElementById('drawer-search-btn');
-        btn.innerText = "FETCHING...";
+        if (btn) btn.innerText = "FETCHING...";
 
         try {
             const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
@@ -669,21 +684,19 @@
         }
     }
 
-    /* --- LIBRARY & PLAYLIST MANAGEMENT TAB --- */
+    /* --- LIBRARY & PLAYLIST TAB --- */
     function renderLibrary(container) {
         const root = container || document.getElementById('drawer-content-root');
         root.innerHTML = '';
 
-        // 1. Create New Playlist & Header
         const actionRow = document.createElement('div');
         actionRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;";
         actionRow.innerHTML = `
-            <span style="font-size: 10px; font-weight: bold; opacity: 0.5; text-transform: uppercase;">Custom Playlists (${customPlaylists.length})</span>
+            <span style="font-size: 10px; font-weight: bold; opacity: 0.5; text-transform: uppercase;">Playlists & Starred (${customPlaylists.length})</span>
             <button class="btn-panel" style="padding: 6px 12px; font-size: 10px;" onclick="openCreatePlaylistModal()">+ New Playlist</button>
         `;
         root.appendChild(actionRow);
 
-        // 2. Starred Songs Library Card
         const starredCard = document.createElement('div');
         starredCard.className = 'playlist-card';
         starredCard.onclick = () => openStarredDetailView();
@@ -694,7 +707,6 @@
         `;
         root.appendChild(starredCard);
 
-        // 3. Render Custom Playlists
         if (customPlaylists.length === 0) {
             const emptyHint = document.createElement('div');
             emptyHint.style.cssText = "text-align: center; padding: 30px 20px; color: var(--ink-faded); font-size: 11px; font-style: italic; border: 1px dashed var(--border); border-radius: 4px; margin-top: 10px;";
@@ -716,7 +728,7 @@
         });
     }
 
-    /* --- PLAYLIST DETAIL VIEW (REORDER, REMOVE, PLAY) --- */
+    /* --- PLAYLIST DETAIL VIEW --- */
     function openPlaylistDetailView(playlistId) {
         viewingPlaylistId = playlistId;
         const pl = customPlaylists.find(p => p.id === playlistId);
@@ -725,7 +737,6 @@
         const root = document.getElementById('drawer-content-root');
         root.innerHTML = '';
 
-        // Playlist View Header
         const header = document.createElement('div');
         header.style.cssText = "border-bottom: 1px dashed var(--border); padding-bottom: 15px; margin-bottom: 20px;";
         header.innerHTML = `
@@ -744,7 +755,6 @@
         `;
         root.appendChild(header);
 
-        // Track List
         if (pl.tracks.length === 0) {
             const empty = document.createElement('div');
             empty.style.cssText = "text-align: center; padding: 40px 20px; font-size: 11px; font-style: italic; color: var(--ink-faded);";
@@ -759,7 +769,7 @@
             const thumbUrl = track.thumbnail || (track.id ? `https://img.youtube.com/vi/${track.id}/hqdefault.jpg` : '');
 
             row.innerHTML = `
-                <div class="track-info-left" onclick="playSingleFromPlaylist('${pl.id}', ${idx})">
+                <div class="track-info-left" style="cursor: pointer;">
                     <span style="font-size: 10px; opacity: 0.4; font-weight: bold; width: 14px;">${idx + 1}</span>
                     ${thumbUrl ? `<img src="${thumbUrl}" class="track-thumb">` : ''}
                     <div class="track-text-group">
@@ -773,6 +783,7 @@
                     <button class="icon-btn" onclick="removeSongFromPlaylist('${pl.id}', ${idx})" style="padding: 4px; color: var(--accent-red);" title="Remove">×</button>
                 </div>
             `;
+            row.querySelector('.track-info-left').onclick = () => playSingleFromPlaylist(pl.id, idx);
             root.appendChild(row);
         });
     }
@@ -845,7 +856,6 @@
         closeDrawer();
     }
 
-    /* --- PLAYLIST REORDER & REMOVE LOGIC --- */
     function movePlaylistItem(plId, index, direction) {
         const pl = customPlaylists.find(p => p.id === plId);
         if (!pl) return;
@@ -877,7 +887,7 @@
         }
     }
 
-    /* --- PLAYLIST MODALS (CREATE / EDIT / PICKER) --- */
+    /* --- PLAYLIST MODALS --- */
     function openCreatePlaylistModal() {
         editingPlaylistId = null;
         document.getElementById('pl-form-title').innerText = "New Playlist";
@@ -1002,7 +1012,7 @@
         });
     }
 
-    /* --- TRACK ROW COMPONENT --- */
+    /* --- ROBUST TRACK ROW COMPONENT BUILDER --- */
     function createTrackRowElement(track, index, playCallback, isSpotify = false, isActive = false, inQueueContext = false) {
         const div = document.createElement('div');
         div.className = 'track-row-item';
@@ -1010,25 +1020,37 @@
 
         const thumbUrl = track.thumbnail || (track.id ? `https://img.youtube.com/vi/${track.id}/hqdefault.jpg` : '');
 
-        div.innerHTML = `
-            <div class="track-info-left" onclick="event.stopPropagation();">
-                ${thumbUrl ? `<img src="${thumbUrl}" class="track-thumb">` : ''}
-                <div class="track-text-group">
-                    <div class="track-row-title" style="${isActive ? 'color: var(--accent-gold);' : ''}">${track.title}</div>
-                    <div class="track-row-artist">${track.artist}</div>
-                </div>
-            </div>
-            <div class="track-row-actions">
-                <button class="icon-btn" onclick="openContextMenu(event, ${JSON.stringify(track).replace(/"/g, '&quot;')}, ${index}, ${inQueueContext})" style="padding: 6px; font-size: 16px;">⋮</button>
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'track-info-left';
+        leftDiv.innerHTML = `
+            ${thumbUrl ? `<img src="${thumbUrl}" class="track-thumb">` : ''}
+            <div class="track-text-group">
+                <div class="track-row-title" style="${isActive ? 'color: var(--accent-gold);' : ''}">${track.title}</div>
+                <div class="track-row-artist">${track.artist}</div>
             </div>
         `;
-        div.onclick = playCallback;
+        leftDiv.onclick = playCallback;
+
+        const rightDiv = document.createElement('div');
+        rightDiv.className = 'track-row-actions';
+
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'icon-btn';
+        menuBtn.style.cssText = 'padding: 6px; font-size: 16px;';
+        menuBtn.innerText = '⋮';
+        menuBtn.onclick = (e) => {
+            e.stopPropagation();
+            openContextMenu(track, index, inQueueContext);
+        };
+
+        rightDiv.appendChild(menuBtn);
+        div.appendChild(leftDiv);
+        div.appendChild(rightDiv);
         return div;
     }
 
     /* --- CONTEXT MENU ACTIONS --- */
-    function openContextMenu(event, track, index, inQueueContext) {
-        event.stopPropagation();
+    function openContextMenu(track, index, inQueueContext) {
         activeModalTrack = track;
         activeModalIndex = index;
 
@@ -1086,7 +1108,7 @@
         alert("Track Query Copied to Clipboard.");
     }
 
-    /* --- STARRED TRACKS & HISTORY SYNC --- */
+    /* --- STARRED & HISTORY ENGINES --- */
     function toggleLikeCurrent() {
         if (currentQueueIndex >= 0 && currentQueue[currentQueueIndex]) {
             toggleLikeTrack(currentQueue[currentQueueIndex]);
@@ -1120,6 +1142,37 @@
         if (playHistory.length > 50) playHistory.pop();
         localStorage.setItem('sound_play_history', JSON.stringify(playHistory));
     }
+
+    /* --- ATTACH EXPLICIT WINDOW HOOKS --- */
+    window.openDrawerTab = openDrawerTab;
+    window.closeDrawer = closeDrawer;
+    window.switchDrawerTab = switchDrawerTab;
+    window.executeSearch = executeSearch;
+    window.togglePlay = togglePlay;
+    window.playNext = playNext;
+    window.playPrev = playPrev;
+    window.toggleShuffle = toggleShuffle;
+    window.toggleRepeat = toggleRepeat;
+    window.toggleLikeCurrent = toggleLikeCurrent;
+    window.toggleTheme = toggleTheme;
+    window.seekTrack = seekTrack;
+    window.clearQueue = clearQueue;
+    window.openCreatePlaylistModal = openCreatePlaylistModal;
+    window.openEditPlaylistModal = openEditPlaylistModal;
+    window.closePlaylistFormModal = closePlaylistFormModal;
+    window.submitPlaylistForm = submitPlaylistForm;
+    window.openPlaylistPickerForActiveTrack = openPlaylistPickerForActiveTrack;
+    window.closePlaylistPicker = closePlaylistPicker;
+    window.closeContextMenu = closeContextMenu;
+    window.actionPlayNext = actionPlayNext;
+    window.actionAddToQueue = actionAddToQueue;
+    window.actionToggleLikeModal = actionToggleLikeModal;
+    window.actionRemoveFromQueue = actionRemoveFromQueue;
+    window.actionCopyLink = actionCopyLink;
+    window.playEntirePlaylist = playEntirePlaylist;
+    window.playLikedCollection = playLikedCollection;
+    window.deletePlaylist = deletePlaylist;
+    window.renderLibrary = renderLibrary;
 </script>
 </body>
 </html>
