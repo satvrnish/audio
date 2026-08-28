@@ -84,7 +84,7 @@
         }
         .art-frame img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* --- ANALOG STEREO VU METER --- */
+        /* --- ANALOG DUAL STEREO VU METER --- */
         .vu-meter-container {
             width: 210px; background: var(--item-active); border: 1px solid var(--border);
             border-radius: 4px; padding: 8px 12px; margin-bottom: 15px; display: flex;
@@ -104,7 +104,6 @@
             border: 1px solid var(--border); padding: 3px 6px; border-radius: 2px;
             opacity: 0.5; font-weight: bold; cursor: pointer;
         }
-        .spec-badge.active-spec { opacity: 1; border-color: var(--ink-black); color: var(--accent-gold); }
 
         .track-title { 
             font-family: var(--font-serif); font-size: 22px; margin-bottom: 4px; 
@@ -296,7 +295,7 @@
         </div>
 
         <div class="track-title" id="track-title">Sound Engine</div>
-        <div class="track-artist" id="track-artist">Search any Track, Artist or Album</div>
+        <div class="track-artist" id="track-artist">Search any Track or Paste Link</div>
 
         <!-- TOUCH & DRAG SCRUBBER -->
         <div class="scrubber-container">
@@ -593,34 +592,10 @@
         addToHistory(item);
         setupMediaSession(item);
 
-        if (player && typeof player.loadVideoById === 'function') {
+        if (player && typeof player.loadVideoById === 'function' && item.id) {
             player.loadVideoById(item.id);
             player.playVideo();
         }
-    }
-
-    async function resolveAndPlayTrack(index) {
-        if (index < 0 || index >= currentQueue.length) return;
-        currentQueueIndex = index;
-        const item = currentQueue[index];
-
-        document.getElementById('track-title').innerText = item.title;
-        document.getElementById('track-artist').innerText = item.artist + " (Matching Audio...)";
-        const specSource = document.getElementById('spec-source');
-        if (specSource) specSource.innerText = "SEARCHING";
-
-        try {
-            const res = await fetch(`/api/search?q=${encodeURIComponent(item.searchQuery || item.title + " " + item.artist)}`);
-            const data = await res.json();
-            if (data.results && data.results.length > 0) {
-                const matched = data.results[0];
-                item.id = matched.id;
-                if (!item.thumbnail) item.thumbnail = matched.thumbnail;
-                playYouTubeItem(index);
-            } else {
-                alert("Could not match stream for this track.");
-            }
-        } catch (e) { console.error(e); }
     }
 
     function togglePlay() {
@@ -655,8 +630,7 @@
     function playItemInQueue(index) {
         const item = currentQueue[index];
         if (!item) return;
-        if (item.id) playYouTubeItem(index);
-        else resolveAndPlayTrack(index);
+        playYouTubeItem(index);
         if (document.getElementById('drawer-overlay').classList.contains('open')) {
             renderActiveQueue();
         }
@@ -804,7 +778,6 @@
                 return;
             }
 
-            // Pseudo-random acoustic frequency envelope simulation
             const targetL = Math.random() * 80 + (Math.random() > 0.85 ? 18 : 0);
             const targetR = Math.random() * 75 + (Math.random() > 0.85 ? 20 : 0);
 
@@ -887,7 +860,6 @@
         target.innerText = "Fetching lyrics from open database...";
         document.getElementById('lyrics-modal').classList.add('open');
 
-        // Sanitize track title (remove "Official Video", "(Lyrics)", "feat", etc.)
         const cleanTitle = activeTrack.title
             .replace(/\(.*?\)|\[.*?\]/g, '')
             .replace(/official\s*(music)?\s*video/gi, '')
@@ -914,7 +886,6 @@
                 }
             }
 
-            // Fallback: search query
             const searchRes = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(cleanTitle + " " + cleanArtist)}`);
             const searchData = await searchRes.json();
             if (searchData && searchData.length > 0 && (searchData[0].plainLyrics || searchData[0].syncedLyrics)) {
@@ -1122,7 +1093,7 @@
     function renderSearchTab(root) {
         root.innerHTML = `
             <div class="search-box-group">
-                <input type="text" id="drawer-search-input" class="native-input" placeholder="Search track, artist, album, or paste YouTube link...">
+                <input type="text" id="drawer-search-input" class="native-input" placeholder="Search song title, artist, or YouTube URL...">
                 <button class="btn-panel" id="drawer-search-btn" onclick="executeSearch()">SEARCH</button>
             </div>
             <div id="search-results-target">
