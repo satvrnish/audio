@@ -3,12 +3,14 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
 
     const query = req.query.q;
+    const searchType = req.query.type || 'all';
+
     if (!query) {
         return res.status(400).json({ error: "Query parameter 'q' is required" });
     }
 
     try {
-        // 1. SPOTIFY LINK DETECTOR (Playlist or Album)
+        // 1. SPOTIFY LINK DETECTOR (Paste direct URL)
         if (query.includes('spotify.com/playlist/') || query.includes('spotify.com/album/')) {
             const spotifyTracks = await parseSpotifyLink(query);
             return res.status(200).json({
@@ -33,7 +35,16 @@ export default async function handler(req, res) {
             });
         }
 
-        // 3. GENERAL TEXT SEARCH ACROSS YOUTUBE
+        // 3. SPOTIFY PLAYLIST SEARCH (Discover & Curate)
+        if (searchType === 'spotify_playlists') {
+            const playlists = await searchSpotifyPlaylists(query);
+            return res.status(200).json({
+                type: 'spotify_playlist_search_results',
+                results: playlists
+            });
+        }
+
+        // 4. GENERAL YOUTUBE TRACK SEARCH
         const searchResults = await searchYouTube(query);
         return res.status(200).json({
             type: 'search_results',
@@ -41,11 +52,46 @@ export default async function handler(req, res) {
         });
 
     } catch (err) {
-        return res.status(500).json({ error: err.message });
+        console.error("API Route Error:", err);
+        return res.status(500).json({ error: err.message || "Internal Engine Error" });
     }
 }
 
-// --- HELPER 1: Extract Spotify Playlist Tracklist Without API Keys ---
+// --- HELPER 1: Search Spotify Public Playlists Without Quota Keys ---
+async function searchSpotifyPlaylists(query) {
+    try {
+        // Fetch Spotify's public client token
+        const tokenRes = await fetch('https://open.spotify.com/get_access_token', {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+        });
+        const tokenData = await tokenRes.json();
+        const token = tokenData.accessToken;
+
+        if (!token) return [];
+
+        const searchUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=playlist&limit=15`;
+        const res = await fetch(searchUrl, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        const items = data.playlists?.items || [];
+
+        return items.filter(p => p && p.id).map(p => ({
+            id: p.id,
+            name: p.name || "Untitled Playlist",
+            description: p.description || "",
+            owner: p.owner?.display_name || "Spotify",
+            trackCount: p.tracks?.total || 0,
+            thumbnail: p.images?.[0]?.url || "",
+            url: p.external_urls?.spotify || `https://open.spotify.com/playlist/${p.id}`
+        }));
+    } catch (err) {
+        console.error("Spotify Playlist Search Error:", err);
+        return [];
+    }
+}
+
+// --- HELPER 2: Extract Spotify Playlist Tracklist ---
 async function parseSpotifyLink(url) {
     const cleanUrl = url.split('?')[0];
     const embedUrl = cleanUrl.replace('spotify.com/', 'spotify.com/embed/');
@@ -69,7 +115,7 @@ async function parseSpotifyLink(url) {
     }));
 }
 
-// --- HELPER 2: Scrape YouTube Top Search Results Without Quota Limits ---
+// --- HELPER 3: Robust YouTube Video Scraper ---
 async function searchYouTube(query) {
     try {
         const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
