@@ -609,7 +609,7 @@
         else if (tab === 'history') renderHistory(root);
     }
 
-    /* --- SEARCH TAB (YOUTUBE & SPOTIFY PLAYLIST SEARCH) --- */
+    /* --- SEARCH TAB (YOUTUBE & SPOTIFY PLAYLIST DISCOVERY) --- */
     function renderSearchTab(root) {
         root.innerHTML = `
             <div class="search-mode-selector">
@@ -617,12 +617,12 @@
                 <button class="search-pill ${searchMode === 'spotify_playlists' ? 'active' : ''}" id="pill-sp" onclick="setSearchMode('spotify_playlists')">📁 Spotify Playlists</button>
             </div>
             <div class="search-box-group">
-                <input type="text" id="drawer-search-input" class="native-input" placeholder="${searchMode === 'youtube' ? 'Song title, YT URL, or Spotify link...' : 'Search Spotify playlists (e.g., Synthwave, Study)...'}">
+                <input type="text" id="drawer-search-input" class="native-input" placeholder="${searchMode === 'youtube' ? 'Song title, YT URL, or Spotify link...' : 'Search Spotify playlists (e.g. your username, Late Night)...'}">
                 <button class="btn-panel" id="drawer-search-btn" onclick="executeSearch()">SEARCH</button>
             </div>
             <div id="search-results-target">
                 <div style="text-align: center; padding: 40px 20px; color: var(--ink-faded); font-size: 11px; font-style: italic;">
-                    ${searchMode === 'youtube' ? 'Search YouTube audio streams or paste any Spotify playlist link.' : 'Discover public Spotify playlists to curate and import.'}
+                    ${searchMode === 'youtube' ? 'Search YouTube audio streams or paste any Spotify playlist link.' : 'Discover public and user-made Spotify playlists to curate.'}
                 </div>
             </div>
         `;
@@ -652,6 +652,14 @@
             const target = document.getElementById('search-results-target');
             target.innerHTML = '';
 
+            if (data.warning) {
+                target.innerHTML = `
+                    <div style="padding: 15px; border: 1px dashed var(--accent-gold); border-radius: 6px; font-size: 11px; margin-bottom: 15px; line-height: 1.4;">
+                        <b>SPOTIFY KEYS NEEDED:</b><br>${data.warning}
+                    </div>
+                `;
+            }
+
             // 1. Direct Spotify Playlist Link Result
             if (data.type === 'spotify_playlist') {
                 currentQueue = data.tracks;
@@ -660,7 +668,7 @@
                     target.appendChild(createTrackRowElement(track, i, () => playItemInQueue(i), true));
                 });
             } 
-            // 2. Spotify Playlist Search Discovery Results
+            // 2. Spotify Playlist Search Discovery Results (Ranked)
             else if (data.type === 'spotify_playlist_search_results' && data.results.length > 0) {
                 target.innerHTML = `<div style="font-size: 10px; font-weight: bold; opacity: 0.5; margin-bottom: 15px; text-transform: uppercase;">Found ${data.results.length} Spotify Playlists</div>`;
                 data.results.forEach(pl => {
@@ -672,7 +680,7 @@
                             ${pl.thumbnail ? `<img src="${pl.thumbnail}" style="width: 50px; height: 50px; border-radius: 4px; object-fit: cover; border: 1px solid var(--border);">` : ''}
                             <div style="overflow: hidden;">
                                 <div class="pl-card-title">${pl.name}</div>
-                                <div class="pl-card-desc" style="margin-bottom: 4px;">${pl.description || 'By ' + pl.owner}</div>
+                                <div class="pl-card-desc" style="margin-bottom: 4px;">${pl.description || 'Curated on Spotify'}</div>
                                 <div class="pl-card-meta">${pl.trackCount} Tracks • By ${pl.owner}</div>
                             </div>
                         </div>
@@ -720,10 +728,10 @@
             header.style.cssText = "border-bottom: 1px dashed var(--border); padding-bottom: 15px; margin-bottom: 20px;";
             header.innerHTML = `
                 <button onclick="renderSearchTab(document.getElementById('drawer-content-root'))" style="background: none; border: none; font-size: 11px; font-family: var(--font-mono); font-weight: bold; cursor: pointer; color: var(--ink-faded); text-transform: uppercase; margin-bottom: 10px;">
-                    ← Back to Playlist Results
+                    ← Back to Search Results
                 </button>
                 <div style="font-family: var(--font-serif); font-size: 22px; margin-bottom: 4px;">${pl.name}</div>
-                <div style="font-size: 11px; opacity: 0.6; margin-bottom: 15px;">${pl.description || 'Curated on Spotify'}</div>
+                <div style="font-size: 11px; opacity: 0.6; margin-bottom: 15px;">${pl.description || 'Curated by ' + pl.owner}</div>
                 
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <button class="btn-panel" style="padding: 8px 14px; font-size: 10px;" id="btn-import-pl">📥 Save as My Playlist</button>
@@ -1260,7 +1268,7 @@
         localStorage.setItem('sound_play_history', JSON.stringify(playHistory));
     }
 
-    /* --- EXPLICIT WINDOW ATTACHMENTS --- */
+    /* --- GLOBAL WINDOW ATTACHMENTS --- */
     window.openDrawerTab = openDrawerTab;
     window.closeDrawer = closeDrawer;
     window.switchDrawerTab = switchDrawerTab;
